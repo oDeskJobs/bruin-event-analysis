@@ -1,8 +1,10 @@
 #:kivy 1.0.9
 
 #:set bg_color (.8, .8, .8)
-#:set box_color (.6, .6, .6)
+#:set box_color (.7, .7, .7)
 #:set txt_color (0, 0, 0, 1)
+#:set header_height 24
+#:set grid_spacing 7
 
 
 
@@ -17,47 +19,38 @@
         pos: root.pos
         size: root.size
         orientation: 'vertical'
-        padding: 5
-        spacing: 5
+        padding: grid_spacing
+        spacing: grid_spacing
 
         # layout containing the five list boxes on the top row
         BoxLayout:
             size_hint: (1, .33)
             orientation: 'horizontal'
-            spacing: 5
-            padding: 5
-            ListBox:
-                size_hint: (.2, 1)
-            ListBox:
+            spacing: grid_spacing
+            BoxWithHeader:
+                title: "Sessions"
+                size_hint: (.2,1)
+            BoxWithHeader:
+                title: "Subjects"
                 size_hint: (.2, 1)
             BoxLayout:
                 orientation: 'vertical'
-                spacing: 5
+                spacing: grid_spacing
                 size_hint: (.6, 1)
-                Widget:
-                    id: input_files_label_bg
-                    size_hint: (1, None)
-                    height: 24
-                    canvas:
-                        Color:
-                            rgb: box_color
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-                    Label:
-                        text: "Input Files"
-                        color: txt_color
-                        pos: input_files_label_bg.pos
-                        size: input_files_label_bg.size
+                Header:
+                    text: "Input Files"
                 BoxLayout:
                     size_hint: (1, 1)
                     orientation: 'horizontal'
-                    spacing: 5
-                    ListBox:
+                    spacing: grid_spacing
+                    BoxWithHeader:
+                        title: "Transients"
                         size_hint: (.33, 1)
-                    ListBox:
+                    BoxWithHeader:
+                        title: "Coded Behavior"
                         size_hint: (.33, 1)
-                    ListBox:
+                    BoxWithHeader:
+                        title: "Recorded Behavior"
                         size_hint: (.33, 1)
 
 
@@ -65,21 +58,60 @@
         # layout containing the processing options
         BoxLayout:
             size_hint: (1, .33)
-            orientation: 'horizontal'
-            spacing: 5
-            padding: 5
+            orientation: 'vertical'
+            spacing: grid_spacing
+            Header:
+                text: "Processing Options"
+            BoxLayout:
+                orientation: 'horizontal'
+                spacing: grid_spacing
+                BoxWithHeader:
+                    title: "Bout Identification"
+                    size_hint: (.33, 1)
+                BoxWithHeader:
+                    title: "Transition Identification"
+                    size_hint: (.33, 1)
+                BoxWithHeader:
+                    title: "Event Matching"
+                    size_hint: (.33, 1)
+
 
         # layout containing the visualization panel
         BoxLayout:
             size_hint: (1, .33)
             orientation: 'horizontal'
-            spacing: 5
-            padding: 5
+            spacing: grid_spacing
 
 <ListBox>:
+    # this is where we will drop in the "real" ListBox once we've designed it
     canvas:
         Color:
             rgb: box_color
         Rectangle:
             pos: root.pos
             size: root.size
+
+[Header@Widget]:
+    id: label_bg
+    size_hint: (1, None)
+    height: header_height
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Label:
+        text: ctx.text
+        color: txt_color
+        pos: label_bg.pos
+        size: label_bg.size
+
+[BoxWithHeader@BoxLayout]:
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    Header:
+        text: ctx.title
+    ListBox:
+        size_hint: (1,1)
