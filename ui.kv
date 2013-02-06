@@ -77,10 +77,20 @@
 
 
         # layout containing the visualization panel
-        BoxLayout:
+        Widget:
+            id: vis_placeholder
             size_hint: (1, .33)
-            orientation: 'horizontal'
-            spacing: grid_spacing
+            canvas:
+                Color:
+                    rgb: (.3,.3,.3)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "[visualization]"
+                color: txt_color
+                pos: vis_placeholder.pos
+                size: vis_placeholder.size
 
 <ListBox>:
     # this is where we will drop in the "real" ListBox once we've designed it
