@@ -9,6 +9,7 @@
 
 
 <MainView>:
+    visualizer: visualizer
     canvas:
         Color:
             rgb: bg_color
@@ -77,20 +78,9 @@
 
 
         # layout containing the visualization panel
-        Widget:
-            id: vis_placeholder
+        Plot:
+            id: visualizer
             size_hint: (1, .33)
-            canvas:
-                Color:
-                    rgb: (.3,.3,.3)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
-            Label:
-                text: "[visualization]"
-                color: txt_color
-                pos: vis_placeholder.pos
-                size: vis_placeholder.size
 
 <ListBox>:
     # this is where we will drop in the "real" ListBox once we've designed it
