@@ -24,10 +24,10 @@ class MainView(Widget):
         v.y_axis_title = "DA Transient Amplitude (nM)"
         v.x_axis_title = "Time (sec)"
         v.viewport = [0,0,50,100]
-        v.tick_distance_x = 10
+        v.tick_distance_x = 30
         v.tick_distance_y = 20
 
-        self.transients = Series(self.visualizer, fill_color = (.68, .42, .73), min_bar_width = 4)
+        self.transients = Series(self.visualizer, fill_color = (.68, .42, .73), min_tick_width = 6, tick_height = 20)
 
     def load_transients(self):
         t = TransientDataFile('sample data/CV5_Inst5aSuc_DATransientData.csv')

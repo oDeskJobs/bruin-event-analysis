@@ -103,9 +103,10 @@ class Series(Widget):
     fill_color = ListProperty([1,1,1])
     enabled = BooleanProperty(False)
     data = ListProperty(None)
-    max_bar_width = NumericProperty(32)
-    min_bar_width = NumericProperty(5)
-    bar_width = NumericProperty(None)
+    max_tick_width = NumericProperty(32)
+    min_tick_width = NumericProperty(5)
+    tick_width = NumericProperty(None)
+    tick_height = NumericProperty(32)
 
     def __init__(self, plot, **kwargs):
         kwargs['size_hint'] = (None, None)
@@ -134,7 +135,7 @@ class Series(Widget):
 
 
     def draw(self):
-        # calculate smallest nonzero difference between two elements to define bar_width
+        # calculate smallest nonzero difference between two elements to define tick_width
         if self.data is not None and len(self.data) > 0:
             d = sorted(self.data_x)
             deltas = sorted([abs(x-y) for x,y in zip(d[1:],d[:-1])])
@@ -142,28 +143,30 @@ class Series(Widget):
                 if min_dist == 0: continue
                 break
             min_dist = min_dist * self.plot.vp_width_convert
-            if min_dist > self.max_bar_width + 5:
-                bar_width = self.max_bar_width
+            if min_dist > self.max_tick_width + 5:
+                tick_width = self.max_tick_width
             elif min_dist > 25:
-                bar_width = int(min_dist - 5)
-            elif min_dist > self.min_bar_width + 1:
-                bar_width = int(0.8 * min_dist) + 1
+                tick_width = int(min_dist - 5)
+            elif min_dist > self.min_tick_width + 1:
+                tick_width = int(0.8 * min_dist) + 1
             else:
-                bar_width = self.min_bar_width
+                tick_width = self.min_tick_width
 
         self.series.clear()
         self.series.add(PushMatrix())
         self.series.add(Color(*self.fill_color, mode='rgb'))
         self.series.add(self.series_translate)
 
+        tick_half_height_px = .5*self.tick_height / self.plot.vp_height_convert
+
         for t in self.data:
             bar_x = int(t[0])
             if bar_x >= self.plot.viewport[2]: continue
-            bar_min_y = self.plot.viewport[1]
-            bar_max_y = t[1] if t[1] < self.plot.viewport[3] else self.plot.viewport[3]
+            bar_min_y = int(t[1] - tick_half_height_px) if t[1] - tick_half_height_px > self.plot.viewport[1] else self.plot.viewport[1]
+            bar_max_y = int(t[1] + tick_half_height_px) if t[1] + tick_half_height_px < self.plot.viewport[3] else self.plot.viewport[3]
 
             display_pos = [int(v) for v in self.plot.to_display_point(bar_x, bar_min_y)]
-            display_size = [int(v) for v in (bar_width, self.plot.to_display_point(bar_x, bar_max_y)[1] - display_pos[1])]
+            display_size = [int(v) for v in (tick_width, self.plot.to_display_point(bar_x, bar_max_y)[1] - display_pos[1])]
             self.series.add(Rectangle(pos = display_pos, size = display_size))
 
         self.series.add(PopMatrix())
