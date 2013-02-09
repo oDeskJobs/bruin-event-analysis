@@ -44,15 +44,22 @@
                     size_hint: (1, 1)
                     orientation: 'horizontal'
                     spacing: grid_spacing
+                    BoxLayout:
+                        orientation: 'vertical'
+                        spacing: grid_spacing
+                        size_hint: (.5, 1)
+                        Header:
+                            text: "Transients"
+                        Button:
+                            text: "Import sample"
+                            size_hint: (1, None)
+                            on_release: root.load_transients()
+                            height: 32
+                        ListBox:
+                            size_hint: (1,1)
                     BoxWithHeader:
-                        title: "Transients"
-                        size_hint: (.33, 1)
-                    BoxWithHeader:
-                        title: "Coded Behavior"
-                        size_hint: (.33, 1)
-                    BoxWithHeader:
-                        title: "Recorded Behavior"
-                        size_hint: (.33, 1)
+                        title: "Behavior"
+                        size_hint: (.5, 1)
 
 
 

@@ -1,8 +1,9 @@
 from kivy.uix.widget import Widget
 from kivy.lang import Builder
-from kivy_plotter.plot import Plot 
+from kivy_plotter.plot import Plot, Series
 from kivy.properties import ObjectProperty
 from kivy.uix.button import Button
+from data_models import TransientDataFile
 
 Builder.load_file('ui.kv')
 
@@ -26,6 +27,13 @@ class MainView(Widget):
         v.tick_distance_x = 10
         v.tick_distance_y = 20
 
+        self.transients = Series(self.visualizer, fill_color = (.68, .42, .73), min_bar_width = 4)
+
+    def load_transients(self):
+        t = TransientDataFile('sample data/CV5_Inst5aSuc_DATransientData.csv')
+        data =[p for p in t.get_xy_pairs()]
+        self.transients.data = data
+        self.transients.resize_plot_from_data()
 
 
 class ListBox(Widget):

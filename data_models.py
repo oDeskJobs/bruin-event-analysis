@@ -40,6 +40,12 @@ class TransientDataFile(object):
 
         self.data = all_lines
 
+    def get_xy_pairs(self, x='peak_time', y='amplitude'):
+        assert x in self.data_file_field_order and y in self.data_file_field_order
+        for d in self.data:
+            yield (d[x], d[y])
+
+
 
 class TransientDataPoint(object):
     """Represents one data point of processed transient neurotransmitter data."""
@@ -67,6 +73,9 @@ class TransientDataPoint(object):
             except AttributeError:
                 vf = v
             setattr(self, k, vf)
+
+    def __getitem__(self, val):
+        return getattr(self, val)
 
 class BehaviorLog(object):
     """Represents a set of instances of a certain type of behavior. At its simplest, this is just a list of timestamps

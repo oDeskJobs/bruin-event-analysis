@@ -99,6 +99,87 @@ class LinePlot(Widget):
         yt = (y - self.y)/self.vp_height_convert+self.viewport[1]
         return (xt, yt)
 
+class Series(Widget):
+    fill_color = ListProperty([1,1,1])
+    enabled = BooleanProperty(False)
+    data = ListProperty(None)
+    max_bar_width = NumericProperty(32)
+    min_bar_width = NumericProperty(5)
+    bar_width = NumericProperty(None)
+
+    def __init__(self, plot, **kwargs):
+        kwargs['size_hint'] = (None, None)
+        self.plot = plot
+        super(Series, self).__init__(**kwargs)
+        self.plot.bind(size = self._set_size)
+        self.plot.bind(pos = self._set_pos)
+        self.plot.add_widget(self)
+
+        self.series = InstructionGroup()
+        self.series_translate = Translate()
+        self.canvas.add(self.series)
+
+    def resize_plot_from_data(self):
+        self.plot.viewport = self.data_extents
+        print self.data_extents
+        self.draw()
+
+    def on_data(self, instance, value):
+        if value is None or len(value) == 0: return
+
+        self.data_x = zip(*value)[0]
+        self.data_y = zip(*value)[1]
+        self.data_extents = (min(self.data_x), min(self.data_y), max(self.data_x), max(self.data_y))
+        self.draw()
+
+
+    def draw(self):
+        # calculate smallest nonzero difference between two elements to define bar_width
+        if self.data is not None and len(self.data) > 0:
+            d = sorted(self.data_x)
+            deltas = sorted([abs(x-y) for x,y in zip(d[1:],d[:-1])])
+            for min_dist in deltas:
+                if min_dist == 0: continue
+                break
+            min_dist = min_dist * self.plot.vp_width_convert
+            if min_dist > self.max_bar_width + 5:
+                bar_width = self.max_bar_width
+            elif min_dist > 25:
+                bar_width = int(min_dist - 5)
+            elif min_dist > self.min_bar_width + 1:
+                bar_width = int(0.8 * min_dist) + 1
+            else:
+                bar_width = self.min_bar_width
+
+        self.series.clear()
+        self.series.add(PushMatrix())
+        self.series.add(Color(*self.fill_color, mode='rgb'))
+        self.series.add(self.series_translate)
+
+        for t in self.data:
+            bar_x = int(t[0])
+            if bar_x >= self.plot.viewport[2]: continue
+            bar_min_y = self.plot.viewport[1]
+            bar_max_y = t[1] if t[1] < self.plot.viewport[3] else self.plot.viewport[3]
+
+            display_pos = [int(v) for v in self.plot.to_display_point(bar_x, bar_min_y)]
+            display_size = [int(v) for v in (bar_width, self.plot.to_display_point(bar_x, bar_max_y)[1] - display_pos[1])]
+            self.series.add(Rectangle(pos = display_pos, size = display_size))
+
+        self.series.add(PopMatrix())
+
+    def _set_pos(self, instance, value):
+        self.pos = value
+
+    def _set_size(self, instance, value):
+        self.size = value
+
+    def on_pos(self, instance, value):
+        self.series_translate.xy = self.x, self.y
+
+    def on_size(self, instance, value):
+        self.draw()
+
 
 class Plot(Widget):
     viewport = ListProperty([0,0,100,10])
