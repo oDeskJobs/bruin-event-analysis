@@ -31,10 +31,11 @@ class MainView(Widget):
 
     def load_transients(self):
         t = TransientDataFile('sample data/CV5_Inst5aSuc_DATransientData.csv')
-        self.transients = Series(self.visualizer, fill_color = (.68, .42, .73), min_tick_width = 6, tick_height = 20)
+        self.transients = Series(self.visualizer, fill_color = (.68, .42, .73), min_tick_width = 4, tick_height = 15)
 
         data = [p for p in t.get_xy_pairs()]
         self.transients.data = data
+        self.transients.marker = 'tick'
         self.transients.resize_plot_from_data()
         self.transients.enable()
         
