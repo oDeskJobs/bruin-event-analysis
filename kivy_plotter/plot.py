@@ -112,13 +112,23 @@ class Series(Widget):
         kwargs['size_hint'] = (None, None)
         self.plot = plot
         super(Series, self).__init__(**kwargs)
-        self.plot.bind(size = self._set_size)
-        self.plot.bind(pos = self._set_pos)
-        self.plot.add_widget(self)
-
+        
         self.series = InstructionGroup()
         self.series_translate = Translate()
         self.canvas.add(self.series)
+
+        self.pos = self.plot.pos
+        self.size = self.plot.size
+        self.plot.bind(size = self._set_size)
+        self.plot.bind(pos = self._set_pos)
+
+        
+
+    def enable(self):
+        self.plot.add_widget(self)
+
+    def disable(self):
+        self.plot.remove_widget(self)
 
     def resize_plot_from_data(self):
         self.plot.viewport = self.data_extents
@@ -158,11 +168,12 @@ class Series(Widget):
         self.series.add(self.series_translate)
 
         tick_half_height_px = .5*self.tick_height / self.plot.vp_height_convert
+        print "vp:", self.plot.viewport
 
         for t in self.data:
             bar_x = int(t[0])
             if bar_x >= self.plot.viewport[2]: continue
-            bar_min_y = int(t[1] - tick_half_height_px) if t[1] - tick_half_height_px > self.plot.viewport[1] else self.plot.viewport[1]
+            bar_min_y = int(t[1] - tick_half_height_px) if int(t[1] - tick_half_height_px) > self.plot.viewport[1] else self.plot.viewport[1]
             bar_max_y = int(t[1] + tick_half_height_px) if t[1] + tick_half_height_px < self.plot.viewport[3] else self.plot.viewport[3]
 
             display_pos = [int(v) for v in self.plot.to_display_point(bar_x, bar_min_y)]
@@ -172,9 +183,11 @@ class Series(Widget):
         self.series.add(PopMatrix())
 
     def _set_pos(self, instance, value):
+        print 'setting pos', value
         self.pos = value
 
     def _set_size(self, instance, value):
+        print 'setting size', value
         self.size = value
 
     def on_pos(self, instance, value):
@@ -262,6 +275,7 @@ class Plot(Widget):
         self.ticks.add(PopMatrix())
 
     def draw_border(self):
+        print "drawing border, pos is", self.pos, "bottom margin is ", self.bottom_margin
         self.border.clear()
         self.border.add(PushMatrix())
         self.border.add(Color(*self.border_color, mode='rgb'))
