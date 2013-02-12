@@ -77,6 +77,60 @@ class TransientDataPoint(object):
     def __getitem__(self, val):
         return getattr(self, val)
 
+class BehaviorDataFile(object):
+    """Represents a file containing Behavior data. Initiating with BehaviorDataFile(source_file) will read the
+    contents of source_file into memory and parse each column (or related group of columns) into a separate BehaviorLog object."""
+
+    # dictionary containing column_name: [list of data points]
+    data = {}
+
+    # list of lists of columns that tells the program how behavior log objects are grouped.
+    # The first column in each group contains the time field (used for plotting and analysis)
+    schema = []
+
+    def __init__(self, source_file, schema_file):
+        self.source_file = source_file
+        self.get_schema(schema_file)
+        self.read(source_file)
+
+    def __str__(self):
+        return "<%s: %i behavior types>" % (self.source_file, len(self.schema))
+
+    def get_schema(self, schema_file):
+        self.schema = []
+        with open(schema_file, 'r') as inf:
+            for line in inf:
+                # ignore blanks
+                if line.strip() == "": continue
+                if line[0] == line[0].strip():
+                    # line is not indented, create a new schema item
+                    self.schema.append([line.strip()])
+                else:
+                    self.schema[-1].append(line.strip())
+        self.col_names = [item for sublist in self.schema for item in sublist]
+
+
+    def read(self, source_file):
+        all_lines = []
+        with open(source_file, 'r') as inf:
+            csv_reader = csv.reader(inf, delimiter = ",")
+            transposed_file = zip(*csv_reader)
+
+        for col in transposed_file:
+            self.data[col[0]] = [float(s) for s in col[1:] if s != '']
+
+
+    def get_xy_pairs(self, x=None, y=None):
+        # x must be defined, but y can be left as None in the case of Boolean data
+        assert x in self.data.keys()
+        if y is None:
+            for t in self.data[x]:
+                yield (t, None)
+        else:
+            assert y in self.data.keys()
+            for i, t in enumerate(self.data[x]):
+                yield (t, self.data[y][i])
+
 class BehaviorLog(object):
     """Represents a set of instances of a certain type of behavior. At its simplest, this is just a list of timestamps
     and a behavior name. It can also include a dictionary of corresponding key: value metadata pairs."""
@@ -84,6 +138,7 @@ class BehaviorLog(object):
     timestamps = []
     metadata = []
     title = ""
+    metadata_column_lookup = {}
 
     def __init__(self, title):
         self.title = title
@@ -91,7 +146,7 @@ class BehaviorLog(object):
     def set_times(self, times):
         self.timestamps = [float(t) for t in times]
 
-    def add_metadata(self, key, value_list):
+    def add_metadata(self, key, value_list, column_label = None):
         assert len(self.timestamps) == len(value_list)
         if len(self.metadata) != len(value_list):
             self.metadata = [{} for t in value_list]
@@ -101,5 +156,6 @@ class BehaviorLog(object):
 
 if __name__ == '__main__':
     #testing
-    f = TransientDataFile('sample data/CV5_Inst5aSuc_DATransientData.csv')
-    print f
+    f = BehaviorDataFile('sample data/Example_BehaviorData with more variables.csv', 'sample data/Example_BehaviorData with more variables.schema')
+    print list(f.get_xy_pairs(x='Initiate movement towards Right Lever', y='Velocity of movement towards Right Lever'))
+    print list(f.get_xy_pairs(x='Left Lever Press'))

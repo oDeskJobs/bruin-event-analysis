@@ -57,9 +57,19 @@
                             height: 32
                         ListBox:
                             size_hint: (1,1)
-                    BoxWithHeader:
-                        title: "Behavior"
+                    BoxLayout:
+                        orientation: 'vertical'
+                        spacing: grid_spacing
                         size_hint: (.5, 1)
+                        Header:
+                            text: "Behavior"
+                        Button:
+                            text: "Import sample"
+                            size_hint: (1, None)
+                            on_release: root.load_behavior()
+                            height: 32
+                        ListBox:
+                            size_hint: (1,1)
 
 
 

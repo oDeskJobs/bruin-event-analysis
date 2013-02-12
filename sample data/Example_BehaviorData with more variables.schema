@@ -1,0 +1,18 @@
+Left Lever Head Orient
+Right Lever Head Orient
+Food Cup Head Orient
+Left Lever Press
+Right Lever Press
+Food Cup Entry
+Initiate movement towards Left Lever
+    Velocity of movement towards Left Lever
+Initiate movement towards Right Lever
+    Velocity of movement towards Right Lever
+Initiate movement towards Food Cup
+    Velocity of movement towards Food Cup
+Cue 1 onset time
+    Cue 1 offset time
+Cue 2 onset time
+    Cue 2 offset time
+
+    
