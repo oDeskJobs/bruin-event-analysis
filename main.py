@@ -3,6 +3,7 @@ from kivy.lang import Builder
 from kivy_plotter.plot import Plot, Series
 from kivy.properties import ObjectProperty
 from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
 from data_models import TransientDataFile
 
 Builder.load_file('ui.kv')
@@ -14,7 +15,6 @@ class MainView(Widget):
         super(MainView, self).__init__(**kwargs)
         
         self.setup_visualizer()
-
 
     def setup_visualizer(self):
         v = self.visualizer
@@ -40,10 +40,17 @@ class MainView(Widget):
         self.transients.enable()
         
 
-        
+class ListBox(ScrollView):
+    layout = ObjectProperty(None)
 
-class ListBox(Widget):
-    pass
+    def __init__(self, **kwargs):
+        super(ListBox, self).__init__(**kwargs)
+
+    def build(self):
+        btn = Button(text='1', size_hint_y = None, height = 40)
+        self.layout.bind(minimum_height=self.layout.setter('height'))
+        self.layout.add_widget(btn)
+
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp

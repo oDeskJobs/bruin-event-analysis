@@ -91,12 +91,27 @@
 
 <ListBox>:
     # this is where we will drop in the "real" ListBox once we've designed it
-    canvas:
-        Color:
-            rgb: box_color
-        Rectangle:
-            pos: root.pos
-            size: root.size
+
+    layout: layout
+    ScrollView:
+        id: layout
+        size_hint: (1, 1)
+        do_scroll_x: False
+        scroll_distance: 5
+        scroll_timeout: 200
+        GridLayout:
+            id: layout
+            size_hint: (1, None)
+            cols: 1
+            orientation: 'vertical'
+            padding: 10
+            spacing: 5
+            Button:
+                text: 'Add Variable'
+                on_press: root.build()
+                size_hint: (1,None)
+                height: 40
+            
 
 [Header@Widget]:
     id: label_bg
