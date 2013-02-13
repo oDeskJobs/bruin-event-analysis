@@ -17,9 +17,7 @@ class Series(Widget):
     fill_color = ListProperty([1,1,1])
     enabled = BooleanProperty(False)
     data = ListProperty(None)
-    max_tick_width = NumericProperty(32)
-    min_tick_width = NumericProperty(5)
-    tick_width = NumericProperty(None)
+    tick_width = NumericProperty(5)
     tick_height = NumericProperty(32)
     marker = StringProperty('tick')
 
@@ -60,23 +58,6 @@ class Series(Widget):
 
 
     def draw(self):
-        # calculate smallest nonzero difference between two elements to define tick_width
-        if self.data is not None and len(self.data) > 0:
-            d = sorted(self.data_x)
-            deltas = sorted([abs(x-y) for x,y in zip(d[1:],d[:-1])])
-            for min_dist in deltas:
-                if min_dist == 0: continue
-                break
-            min_dist = min_dist * self.plot.vp_width_convert
-            if min_dist > self.max_tick_width + 5:
-                tick_width = self.max_tick_width
-            elif min_dist > 25:
-                tick_width = int(min_dist - 5)
-            elif min_dist > self.min_tick_width + 1:
-                tick_width = int(0.8 * min_dist) + 1
-            else:
-                tick_width = self.min_tick_width
-
         self.series.clear()
         self.series.add(PushMatrix())
         self.series.add(Color(*self.fill_color, mode='rgb'))
@@ -92,14 +73,14 @@ class Series(Widget):
             bar_max_y = t[1] + tick_half_height_px
 
             display_pos = [int(v) for v in self.plot.to_display_point(bar_x, bar_min_y)]
-            display_size = [int(v) for v in (tick_width, self.plot.to_display_point(bar_x, bar_max_y)[1] - display_pos[1])]
+            display_size = [int(v) for v in (self.tick_width, self.plot.to_display_point(bar_x, bar_max_y)[1] - display_pos[1])]
             
             if self.marker == 'tick':
                 self.series.add(Rectangle(pos = display_pos, size = display_size))
             elif self.marker == 'plus':
                 self.series.add(Rectangle(pos = display_pos, size = display_size))
-                crossbar_pos = [display_pos[0] - 0.5*(self.tick_height-tick_width), display_pos[1] + 0.5*(self.tick_height-tick_width)]
-                crossbar_size = (self.tick_height, tick_width)
+                crossbar_pos = [display_pos[0] - 0.5*(self.tick_height-self.tick_width), display_pos[1] + 0.5*(self.tick_height-self.tick_width)]
+                crossbar_size = (self.tick_height, self.tick_width)
                 self.series.add(Rectangle(pos = crossbar_pos, size = crossbar_size))
 
         self.series.add(PopMatrix())

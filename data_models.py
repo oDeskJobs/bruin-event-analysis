@@ -114,6 +114,10 @@ class BehaviorDataFile(object):
         all_lines = []
         with open(source_file, 'r') as inf:
             csv_reader = csv.reader(inf, delimiter = ",")
+            # note: this only works if the CSV file is a rectangular array (i.e. includes all blanks with trailing commas)
+            # CSV files are supposed to be this way, but if someone mangles them in a text editor they could potentially
+            # read as valid CSV files in Excel but not be imported properly. If this happens, zip will truncate all columns 
+            # to the length of the shortest column.
             transposed_file = zip(*csv_reader)
 
         for col in transposed_file:
