@@ -100,13 +100,85 @@
             size_hint: (1, .33)
 
 <ListBox>:
-    # this is where we will drop in the "real" ListBox once we've designed it
-    canvas:
-        Color:
-            rgb: box_color
-        Rectangle:
-            pos: root.pos
-            size: root.size
+    layout: layout
+    ScrollView:
+        id: layout
+        size_hint: (None, None)
+        size: root.size
+        do_scroll_x: False
+        scroll_distance: 3
+        scroll_timeout: 200
+        GridLayout:
+            id: layout
+            size_hint: (1, None)
+            cols: 1
+            orientation: 'vertical'
+            padding: 10
+            spacing: 45
+            Button:
+                text: 'Add Item'
+                on_press: root.item_info()
+                height: 40
+                #width: root.size[0] - 50
+                size_hint: (1,None)
+            
+<GetItemName>:
+    BoxLayout:
+        orientation: 'vertical'
+        pos: root.pos
+        size: root.size
+        spacing: 10
+        padding: 10
+        Label:
+            size_hint_y: .15
+            font_size: root.size[1]*.08
+            valign: 'middle'
+            halign: 'left'
+            #bold: True
+            text: 'Please Enter Item Name:'
+        TextInput:
+            size_hint_y: .4
+            multiline: False
+            focus: True
+            text: root.text
+            on_text: root.text = args[1]
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .4
+            Widget:
+                size_hint_x: .2
+                size_hint_y: 1
+            Button:
+                text: 'OK'
+                size_hint_x: .6
+                size_hint_y: .9
+                on_release: root.ok = True
+            Widget:
+                size_hint_x: .2
+                size_hint_y: 1
+
+<ItemSetup>:
+    BoxLayout:
+        pos: root.pos
+        size: root.size
+        orientation: 'horizontal'
+        size_hint: (1, None)
+        padding: 0
+        spacing: 5
+        Button:
+            text: '-'
+            on_press: root.remove_item()
+            height: 40
+            width: 30
+            size_hint: (None, None)
+        Button:
+            text: root.item_info
+            on_press: root.item_callback()
+            #state: root.item_state
+            background_color: (0,0,1,1) if root.item_state=='down' else (1,1,1,1)
+            height: 40
+            #width: root.size[0] - 50
+            size_hint: (1, None)
 
 [Header@Widget]:
     id: label_bg

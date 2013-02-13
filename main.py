@@ -1,9 +1,11 @@
 from kivy.uix.widget import Widget
 from kivy.lang import Builder
 from kivy_plotter.plot import Plot, Series
-from kivy.properties import ObjectProperty
-from kivy.uix.button import Button
+from kivy.properties import ObjectProperty, BooleanProperty, StringProperty
+from kivy.uix.scrollview import ScrollView
 from data_models import TransientDataFile, BehaviorDataFile
+from kivy.uix.popup import Popup
+from kivy.uix.boxlayout import BoxLayout
 
 Builder.load_file('ui.kv')
 
@@ -14,7 +16,6 @@ class MainView(Widget):
         super(MainView, self).__init__(**kwargs)
         
         self.setup_visualizer()
-
 
     def setup_visualizer(self):
         v = self.visualizer
@@ -46,9 +47,54 @@ class MainView(Widget):
         data = [(p[0], 50) for p in b.get_xy_pairs(x='Left Lever Press')]
         self.behaviors.data = data
         self.behaviors.enable()
+    
 
-class ListBox(Widget):
-    pass
+class ListBox(ScrollView):
+    layout = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(ListBox, self).__init__(**kwargs)
+
+    def item_info(self):
+        self.itemname = GetItemName()
+        popup = Popup(title='Create New Parameter', content = self.itemname, size_hint=(.4,.4))
+        self.itemname.bind(ok = popup.dismiss)
+        popup.bind(on_dismiss = self.build)
+        popup.open()
+        
+    def build(self, *largs):
+        itemsetup = ItemSetup()
+        if self.itemname.text == '':
+            itemsetup.item_info = 'Default'
+        else:
+            itemsetup.item_info = self.itemname.text
+        self.layout.add_widget(itemsetup)
+        self.layout.bind(minimum_height=self.layout.setter('height'))
+
+
+class GetItemName(Widget):
+    
+    ok = BooleanProperty(False)
+    text = StringProperty("")
+
+    def __init__(self, **kwargs):
+        super(GetItemName, self).__init__(**kwargs)
+
+class ItemSetup(BoxLayout):
+    item_info = StringProperty('')
+    item_state = StringProperty('normal')
+
+    def __init__(self, **kwargs):
+        super(ItemSetup, self).__init__(**kwargs)
+
+    def remove_item(self):
+        self.parent.remove_widget(self)
+        
+    def item_callback(self):
+        if self.item_state == 'normal':
+            self.item_state = 'down'
+        else:
+            self.item_state = 'normal'
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp
