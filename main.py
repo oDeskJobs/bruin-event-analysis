@@ -49,7 +49,7 @@ class ListBox(ScrollView):
 
     def item_info(self):
         self.itemname = GetItemName()
-        popup = Popup(title='Congratulations!', content = self.itemname, size_hint=(.4,.4))
+        popup = Popup(title='Create New Parameter', content = self.itemname, size_hint=(.4,.4))
         self.itemname.bind(ok = popup.dismiss)
         popup.bind(on_dismiss = self.build)
         popup.open()
