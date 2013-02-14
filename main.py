@@ -57,7 +57,9 @@ class VariablesList(GridLayout):
 
     def __init__(self, **kwargs):
         super(VariablesList, self).__init__(**kwargs)
+        self.size_hint_y = None
         self.populate_list()
+
         Clock.schedule_once(self.append_test, 5.0)
 
     def clear_list(self):
@@ -71,6 +73,8 @@ class VariablesList(GridLayout):
             variable_button = ToggleButton(text = each, on_press = self.button_press)
             self.add_widget(variable_button)
             self.current_buttons.append(variable_button)
+        
+        self.height = len(self.variable_list) * (self.row_default_height + self.spacing)
 
     def button_press(instance, value):
         print 'button pressed'
