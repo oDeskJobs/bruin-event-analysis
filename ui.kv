@@ -109,9 +109,22 @@
                 text: 'Add Item'
                 on_press: root.item_info()
                 height: 40
-                #width: root.size[0] - 50
-                size_hint: (1,None)
-            
+                width: root.size[0] - 25
+                size_hint: (None,None)
+
+<ScrollView>:
+    canvas.after:
+        Color:
+            rgba: self.bar_color[:3] + [self.bar_color[3] * 1 if self.do_scroll_y else 0]
+        Rectangle:
+            pos: self.right - self.bar_width*6.5, self.y + self.height * self.vbar[0]
+            size: self.bar_width*6.5, self.height * self.vbar[1]
+        Color:
+            rgba: self.bar_color[:3] + [self.bar_color[3] * 1 if self.do_scroll_x else 0]
+        Rectangle:
+            pos: self.x + self.width * self.hbar[0], self.y + self.bar_margin
+            size: self.width * self.hbar[1], self.bar_width
+        
 <GetItemName>:
     BoxLayout:
         orientation: 'vertical'
