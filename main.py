@@ -1,11 +1,14 @@
 from kivy.uix.widget import Widget
 from kivy.lang import Builder
 from kivy_plotter.plot import Plot, Series
-from kivy.properties import ObjectProperty, BooleanProperty, StringProperty
+from kivy.properties import ObjectProperty, BooleanProperty, StringProperty, ListProperty
 from kivy.uix.scrollview import ScrollView
 from data_models import TransientDataFile, BehaviorDataFile
 from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.togglebutton import ToggleButton
+from kivy.clock import Clock
 
 Builder.load_file('ui.kv')
 
@@ -47,9 +50,41 @@ class MainView(Widget):
         data = [(p[0], 50) for p in b.get_xy_pairs(x='Left Lever Press')]
         self.behaviors.data = data
         self.behaviors.enable()
-    
 
-class ListBox(ScrollView):
+class VariablesList(GridLayout):
+    variable_list = ListProperty(('1', '2', '3', '4', '5'))
+    current_buttons = []
+
+    def __init__(self, **kwargs):
+        super(VariablesList, self).__init__(**kwargs)
+        self.populate_list()
+        Clock.schedule_once(self.append_test, 5.0)
+
+    def clear_list(self):
+        print len(self.current_buttons)
+        for each in self.current_buttons:
+            self.remove_widget(each)
+        self.current_buttons = []
+
+    def populate_list(self):
+        for each in self.variable_list:
+            variable_button = ToggleButton(text = each, on_press = self.button_press)
+            self.add_widget(variable_button)
+            self.current_buttons.append(variable_button)
+
+    def button_press(instance, value):
+        print 'button pressed'
+
+    def on_variable_list(self, instance, value):
+        self.clear_list()
+        self.canvas.clear()
+        self.populate_list()
+
+    def append_test(self, dt):
+        print 'adding button'
+        self.variable_list.append('6')
+
+class ListBox(BoxLayout):
     layout = ObjectProperty(None)
 
     def __init__(self, **kwargs):
@@ -71,6 +106,11 @@ class ListBox(ScrollView):
         self.layout.add_widget(itemsetup)
         self.layout.bind(minimum_height=self.layout.setter('height'))
 
+class VariableBox(BoxLayout):
+    variable_list = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(VariableBox, self).__init__(**kwargs)
 
 class GetItemName(Widget):
     

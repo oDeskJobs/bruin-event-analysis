@@ -1,4 +1,4 @@
-#:kivy 1.0.9
+#:kivy 1.5.1
 
 #:set bg_color (.8, .8, .8)
 #:set box_color (.7, .7, .7)
@@ -86,7 +86,7 @@
             BoxLayout:
                 orientation: 'horizontal'
                 spacing: grid_spacing
-                BoxWithHeader:
+                BoxWithHeader2:
                     title: "Bout Identification"
                     size_hint: (.33, 1)
                 BoxWithHeader:
@@ -115,13 +115,31 @@
             id: layout
             size_hint: (1, None)
             cols: 1
-            spacing: header_height + listbox_spacing
+            spacing: listbox_spacing
             orientation: 'vertical'
+            row_default_height: 30
             Button:
                 text: 'Add Item'
                 on_press: root.item_info()
-                height: header_height
-                size_hint: (1,None)
+
+<VariablesList>:
+    size_hint: (1, None)
+    cols: 1
+    orientation: 'vertical'
+    spacing: listbox_spacing
+    row_default_height: 30
+
+<VariableBox>:
+    variable_list: variable_list
+    ScrollView:
+        size_hint: (None, None)
+        size: root.size
+        do_scroll_x: False
+        scroll_distance: 3
+        scroll_timeout: 50
+        VariablesList:
+            id: variable_list
+
             
 <GetItemName>:
     BoxLayout:
@@ -202,4 +220,13 @@
     Header:
         text: ctx.title
     ListBox:
+        size_hint: (1,1)
+
+[BoxWithHeader2@BoxLayout]:
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    Header:
+        text: ctx.title
+    VariableBox:
         size_hint: (1,1)
