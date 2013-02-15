@@ -105,7 +105,7 @@
 <ListBox>:
     layout: layout
     ScrollView:
-        size_hint: (None, None)
+        size_hint: (1, None)
         size: root.size
         do_scroll_x: False
         scroll_distance: 3
@@ -117,10 +117,12 @@
             cols: 1
             spacing: listbox_spacing
             orientation: 'vertical'
-            row_default_height: 30
+            spacing: header_height + listbox_spacing
             Button:
                 text: 'Add Item'
                 on_press: root.item_info()
+                height: header_height
+                size_hint: (1,None)
 
 <VariablesList>:
     size_hint: (1, None)
@@ -132,13 +134,14 @@
 <VariableBox>:
     variable_list: variable_list
     ScrollView:
-        size_hint: (None, None)
+        size_hint: (1, None)
         size: root.size
         do_scroll_x: False
         scroll_distance: 3
         scroll_timeout: 50
         VariablesList:
             id: variable_list
+            preserve_button_state: True
 
             
 <GetItemName>:

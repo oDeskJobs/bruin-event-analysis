@@ -54,11 +54,14 @@ class MainView(Widget):
 class VariablesList(GridLayout):
     variable_list = ListProperty(('1', '2', '3', '4', '5'))
     current_buttons = []
+    current_toggled = []
+    preserve_button_state = BooleanProperty(False)
+    radio_button_mode = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super(VariablesList, self).__init__(**kwargs)
         self.size_hint_y = None
-        self.populate_list()
+        Clock.schedule_once(self.init_button_list)
 
         Clock.schedule_once(self.append_test, 5.0)
 
@@ -68,16 +71,41 @@ class VariablesList(GridLayout):
             self.remove_widget(each)
         self.current_buttons = []
 
+    def init_button_list(self, dt):
+        self.populate_list()
+
     def populate_list(self):
         for each in self.variable_list:
             variable_button = ToggleButton(text = each, on_press = self.button_press)
+            if self.radio_button_mode == True:
+                variable_button.group = self
             self.add_widget(variable_button)
             self.current_buttons.append(variable_button)
-        
+        if self.preserve_button_state == True:
+            self.restore_button_state()
         self.height = len(self.variable_list) * (self.row_default_height + self.spacing)
+
+    def restore_button_state(self):
+        for each in self.current_toggled:
+            for button in self.current_buttons:
+                if each.text == button.text:
+                    button.state = each.state
+        self.reset_current_toggled_list()
+
+    def reset_current_toggled_list(self):
+        self.current_toggled = []
+        for each in self.current_buttons:
+            if each.state == 'down':
+                self.current_toggled.append(each)
+
 
     def button_press(instance, value):
         print 'button pressed'
+        if value.state == 'down':
+            value.parent.current_toggled.append(value)
+        if value.state == 'normal':
+            value.parent.current_toggled.remove(value)
+
 
     def on_variable_list(self, instance, value):
         self.clear_list()
