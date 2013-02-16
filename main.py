@@ -18,11 +18,29 @@ Builder.load_file('ui.kv')
 
 class MainView(Widget):
     visualizer = ObjectProperty(None)
+    transient_box = ObjectProperty(None)
+    behavior_box = ObjectProperty(None)
+    bout_id_box = ObjectProperty(None)
+
+    behavior_files = ListProperty(None)
+    transient_files = ListProperty(None)
+
+    transient_series = []
+    behavior_series = []
+
+    valid_time_fields = ListProperty([])
 
     def __init__(self, **kwargs):
         super(MainView, self).__init__(**kwargs)
-        
+        self.transient_files = []
+        self.behavior_files = []
         self.setup_visualizer()
+
+        self.transient_button_list = self.transient_box.listbox.variable_list
+        self.transient_button_list.bind(current_toggled=self.transient_select_changed)
+
+        self.behavior_button_list = self.behavior_box.listbox.variable_list
+        self.behavior_button_list.bind(current_toggled=self.behavior_select_changed)
 
     def setup_visualizer(self):
         v = self.visualizer
@@ -34,8 +52,6 @@ class MainView(Widget):
         v.viewport = [0,0,50,100]
         v.tick_distance_x = 30
         v.tick_distance_y = 20
-
-        
 
     def load_transients(self):
         t = TransientDataFile('sample data/CV5_Inst5aSuc_DATransientData.csv')
@@ -55,6 +71,98 @@ class MainView(Widget):
         self.behaviors.data = data
         self.behaviors.enable()
 
+    def prompt_for_transient_file(self):
+        LoadSave(action='load', callback=self._add_transient_file)
+
+    def prompt_for_behavior_file(self):
+        LoadSave(action='load', callback=self._add_behavior_file)
+
+    def _add_transient_file(self, path):
+        try:
+            t = TransientDataFile(path)
+        except:
+            print "Could not import %s as a transient data file. Aborting." % (path,)
+            # we will want to make this visible in a popup.
+            return
+
+        if os.path.basename(t.source_file) in [os.path.basename(x.source_file) for x in self.transient_files]:
+            print "%s has already been imported for this subject. Aborting." % (path,)
+            return
+
+        s = Series(self.visualizer, fill_color = (.68, .42, .73), ick_width = 4, tick_height = 15)
+        data = [p for p in t.get_xy_pairs()]
+        s.data = data
+        s.marker = 'tick'
+        s.source_file = t.source_file
+
+        self.transient_series.append(s)
+        self.transient_files.append(t)
+
+    def on_transient_files(self, instance, value):
+        l = self.transient_box.listbox.variable_list
+        l.variable_list = [os.path.basename(t.source_file) for t in self.transient_files]
+
+    def transient_select_changed(self, instance, value):
+        selected_basenames = [v.text for v in value]
+        
+        for s in self.transient_series:
+            if os.path.basename(s.source_file) in selected_basenames:
+                s.resize_plot_from_data()
+                s.enable()
+            else:
+                s.disable()
+
+    def _add_behavior_file(self, path):
+        schema_file = os.path.splitext(path)[0] + '.schema'
+        if not os.path.isfile(schema_file):
+            print "No schema file present. Aborting."
+            return
+
+        try:
+            t = BehaviorDataFile(path, schema_file)
+        except:
+            print "Could not import %s as a behavior data file. Aborting." % (path,)
+            # we will want to make this visible in a popup.
+            return
+
+        if os.path.basename(t.source_file) in [os.path.basename(x.source_file) for x in self.behavior_files]:
+            print "%s has already been imported for this subject. Aborting." % (path,)
+            return
+
+        s = Series(self.visualizer, fill_color = (.13, .24, .62), marker = 'plus', tick_height = 20, tick_width = 5)
+        # we definitely want a better way of handling Boolean data than just assigning it a hardcoded y value like this
+        data = [(p[0], 50) for p in t.get_xy_pairs(x='Left Lever Press')]
+        print data
+        s.data = data
+        s.source_file = t.source_file
+
+        self.behavior_series.append(s)
+        self.behavior_files.append(t)
+
+    def on_behavior_files(self, instance, value):
+        l = self.behavior_box.listbox.variable_list
+        l.variable_list = [os.path.basename(t.source_file) for t in self.behavior_files]
+
+    def behavior_select_changed(self, instance, value):
+        selected_basenames = [v.text for v in value]
+        
+        # enable the right series in the visualizer
+        for s in self.behavior_series:
+            if os.path.basename(s.source_file) in selected_basenames:
+                s.enable()
+            else:
+                s.disable()
+
+        # and now enable the correct fields in the data processing pane
+        new_fields = set([])
+        for f in self.behavior_files:
+            if os.path.basename(f.source_file) in selected_basenames:
+                new_fields = new_fields.union(set(f.get_valid_time_columns()))
+        self.valid_time_fields = sorted(list(new_fields))
+
+    def on_valid_time_fields(self, instance, value):
+        self.bout_id_box.listbox.variable_list.variable_list = value
+
 class VariablePairer(BoxLayout):
     current_pick_1 = ObjectProperty(None)
     current_pick_2 = ObjectProperty(None)
@@ -66,7 +174,7 @@ class VariablePairer(BoxLayout):
 
 
 class VariablesList(GridLayout):
-    variable_list = ListProperty(('1', '2', '3', '4', '5'))
+    variable_list = ListProperty([])
     current_buttons = ListProperty([])
     current_toggled = ListProperty([])
     current_radio_button = ObjectProperty(None)
@@ -77,8 +185,6 @@ class VariablesList(GridLayout):
         super(VariablesList, self).__init__(**kwargs)
         self.size_hint_y = None
         Clock.schedule_once(self.init_button_list)
-
-        Clock.schedule_once(self.append_test, 5.0)
 
     def clear_list(self):
         for each in self.current_buttons:
@@ -164,31 +270,21 @@ class VariablePairsBox(BoxLayout):
 
 class ListBox(BoxLayout):
     layout = ObjectProperty(None)
+    contents = ListProperty([])
 
     def __init__(self, **kwargs):
         super(ListBox, self).__init__(**kwargs)
+        Clock.schedule_interval(self.blah, 2.)
 
-    def get_directions(self):
-        self.directions = LoadSave()
-        popup = Popup(title='Load Existing or Save New?', content = self.directions, size_hint=(.4,.4))
-        self.directions.bind(ok = popup.dismiss)
-        popup.open()
+    def blah(self, dt):
+        self.contents = ['hello', 'goodbye']
 
-    def item_info(self):
-        self.itemname = GetItemName()
-        popup = Popup(title='Create New Parameter', content = self.itemname, size_hint=(.4,.4))
-        self.itemname.bind(ok = popup.dismiss)
-        popup.bind(on_dismiss = self.build)
-        popup.open()
-        
-    def build(self, *largs):
-        itemsetup = ItemSetup()
-        if self.itemname.text == '':
-            itemsetup.item_info = 'Default'
-        else:
-            itemsetup.item_info = self.itemname.text
-        self.layout.add_widget(itemsetup)
+    def on_contents(self, instance, value):
+        for s in self.contents:
+            assert isinstance(s, basestring)
+            self.layout.add_widget(ListItem(item_info = s))
         self.layout.bind(minimum_height=self.layout.setter('height'))
+
 
 class VariableBox(BoxLayout):
     variable_list = ObjectProperty(None)
@@ -222,12 +318,12 @@ class GetItemName(Widget):
     def __init__(self, **kwargs):
         super(GetItemName, self).__init__(**kwargs)
 
-class ItemSetup(BoxLayout):
+class ListItem(BoxLayout):
     item_info = StringProperty('')
     item_state = StringProperty('normal')
 
     def __init__(self, **kwargs):
-        super(ItemSetup, self).__init__(**kwargs)
+        super(ListItem, self).__init__(**kwargs)
 
     def remove_item(self):
         self.parent.remove_widget(self)
@@ -245,8 +341,11 @@ class LoadSave(Widget):
     savefile = ObjectProperty(None)
     text_input = ObjectProperty(None)
 
-    def __init__(self, **kwargs):
+    def __init__(self, action=None, callback=None, **kwargs):
         super(LoadSave, self).__init__(**kwargs)
+        self.callback = callback
+        if action == 'load':
+            self.show_load()
 
     def dismiss_popup(self):
         self._popup.dismiss()
@@ -262,15 +361,11 @@ class LoadSave(Widget):
         self._popup.open()
 
     def load(self, path, filename):
-        with open(os.path.join(path, filename[0])) as stream:
-            self.text_input.text = stream.read()
-
+        self.callback(os.path.join(path, filename[0]))
         self.dismiss_popup()
 
     def save(self, path, filename):
-        with open(os.path.join(path, filename), 'w') as stream:
-            stream.write(self.text_input.text)
-
+        self.callback(os.path.join(path, filename[0]))
         self.dismiss_popup()
 
 class LoadDialog(FloatLayout):
@@ -282,7 +377,7 @@ class LoadDialog(FloatLayout):
         super(LoadDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
-        self.filechooser.path = os.path.expanduser('~')
+        self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
 
 
 class SaveDialog(FloatLayout):
@@ -295,7 +390,7 @@ class SaveDialog(FloatLayout):
         super(SaveDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
-        self.filechooser.path = os.path.expanduser('~')
+        self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
 
 Factory.register('LoadSave', cls=LoadSave)
 Factory.register('LoadDialog', cls=LoadDialog)

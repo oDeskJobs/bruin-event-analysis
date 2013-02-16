@@ -20,6 +20,7 @@ class Series(Widget):
     tick_width = NumericProperty(5)
     tick_height = NumericProperty(32)
     marker = StringProperty('tick')
+    source_file = StringProperty(None)
 
     def __init__(self, plot, **kwargs):
         kwargs['size_hint'] = (None, None)
@@ -34,6 +35,7 @@ class Series(Widget):
         self.size = self.plot.size
         self.plot.bind(size = self._set_size)
         self.plot.bind(pos = self._set_pos)
+        self.plot.bind(viewport = self.draw)
 
         
 
@@ -57,7 +59,7 @@ class Series(Widget):
         self.draw()
 
 
-    def draw(self):
+    def draw(self, *largs):
         self.series.clear()
         self.series.add(PushMatrix())
         self.series.add(Color(*self.fill_color, mode='rgb'))

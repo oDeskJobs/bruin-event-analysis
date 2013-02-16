@@ -11,6 +11,10 @@
 
 <MainView>:
     visualizer: visualizer
+    transient_box: transient_box
+    behavior_box: behavior_box
+    bout_id_box: bout_id_box
+
     canvas:
         Color:
             rgb: bg_color
@@ -32,9 +36,11 @@
             BoxWithHeader:
                 title: "Sessions"
                 size_hint: (.2,1)
+                add_button_callback: None
             BoxWithHeader:
                 title: "Subjects"
                 size_hint: (.2, 1)
+                add_button_callback: None
             BoxLayout:
                 orientation: 'vertical'
                 spacing: grid_spacing
@@ -49,30 +55,20 @@
                         orientation: 'vertical'
                         spacing: grid_spacing
                         size_hint: (.5, 1)
-                        Header:
-                            text: "Transients"
-                        Button:
-                            text: "Import sample (test)"
-                            size_hint: (1, None)
-                            on_release: root.load_transients()
-                            height: header_height
-                            background_color: (1,0,0,1)
-                        ListBox:
+                        BoxWithHeader:
+                            id: transient_box
+                            title: "Transients"
                             size_hint: (1,1)
+                            add_button_callback: root.prompt_for_transient_file
                     BoxLayout:
                         orientation: 'vertical'
                         spacing: grid_spacing
                         size_hint: (.5, 1)
-                        Header:
-                            text: "Behavior"
-                        Button:
-                            text: "Import sample (test)"
-                            size_hint: (1, None)
-                            on_release: root.load_behavior()
-                            height: header_height
-                            background_color: (1,0,0,1)
-                        ListBox:
+                        BoxWithHeader:
+                            id: behavior_box
+                            title: "Behavior"
                             size_hint: (1,1)
+                            add_button_callback: root.prompt_for_behavior_file
 
 
 
@@ -87,6 +83,7 @@
                 orientation: 'horizontal'
                 spacing: grid_spacing
                 BoxWithHeader2:
+                    id: bout_id_box
                     title: "Bout Identification"
                     size_hint: (.33, 1)
                 BoxWithHeader3:
@@ -137,14 +134,7 @@
             id: layout
             size_hint: (1, None)
             cols: 1
-            spacing: listbox_spacing
-            orientation: 'vertical'
             spacing: header_height + listbox_spacing
-            Button:
-                text: 'Add Item'
-                on_press: root.get_directions()
-                height: header_height
-                size_hint: (1,None)
 
 <VariablesList>:
     size_hint: (1, None)
@@ -277,7 +267,7 @@
                 on_release: root.show_save()
                 on_state: root.ok = True
         
-<ItemSetup>:
+<ListItem>:
     BoxLayout:
         pos: root.pos
         size: root.size
@@ -363,21 +353,44 @@
         size: label_bg.size
 
 [BoxWithHeader@BoxLayout]:
+    listbox: listbox
     orientation: 'vertical'
     spacing: grid_spacing
     size_hint: ctx.size_hint
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
     Header:
         text: ctx.title
-    ListBox:
+    VariableBox:
+        id: listbox
         size_hint: (1,1)
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32 + 2*grid_spacing
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: ctx.add_button_callback()
 
 [BoxWithHeader2@BoxLayout]:
+    listbox: listbox
     orientation: 'vertical'
     spacing: grid_spacing
     size_hint: ctx.size_hint
     Header:
         text: ctx.title
     VariableBox:
+        id: listbox
         size_hint: (1,1)
 
 [BoxWithHeader3@BoxLayout]:
