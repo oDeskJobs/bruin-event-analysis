@@ -89,7 +89,7 @@
                 BoxWithHeader2:
                     title: "Bout Identification"
                     size_hint: (.33, 1)
-                BoxWithHeader:
+                BoxWithHeader3:
                     title: "Transition Identification"
                     size_hint: (.33, 1)
                 BoxWithHeader:
@@ -101,6 +101,28 @@
         Plot:
             id: visualizer
             size_hint: (1, .33)
+
+<VariablePairsBox>:
+    layout: layout
+    ScrollView:
+        size_hint: (1, None)
+        size: root.size
+        do_scroll_x: False
+        scroll_distance: 3
+        scroll_timeout: 50
+
+        GridLayout:
+            id: layout
+            size_hint: (1, None)
+            cols: 1
+            spacing: listbox_spacing
+            orientation: 'vertical'
+            spacing: header_height + listbox_spacing
+            Button:
+                text: 'Add Item'
+                on_press: root.get_variable_pair()
+                height: header_height
+                size_hint: (1,None)
 
 <ListBox>:
     layout: layout
@@ -142,6 +164,44 @@
         VariablesList:
             id: variable_list
             preserve_button_state: True
+
+<VariablePairer>:
+    variable_panel_1: variable_panel_1
+    variable_panel_2: variable_panel_2
+    current_pick_1: variable_panel_1.current_radio_button
+    current_pick_2: variable_panel_2.current_radio_button
+    orientation: 'vertical'
+    padding: 10
+    spacing: 10
+    BoxLayout:
+        orentation: 'horizontal'
+        spacing: 50
+        ScrollView:
+            size_hint: (1, 1)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            VariablesList:
+                id: variable_panel_1
+                preserve_button_state: True
+                radio_button_mode: True
+                on_current_radio_button: root.current_pick_1 = self.current_radio_button
+        ScrollView:
+            size_hint: (1, 1)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            VariablesList:
+                id: variable_panel_2
+                preserve_button_state: True
+                radio_button_mode: True
+    Button:
+        text: 'OK'
+        size_hint_x: .8
+        size_hint_y: .2
+        on_release: root.ok = True
 
             
 <GetItemName>:
@@ -232,4 +292,13 @@
     Header:
         text: ctx.title
     VariableBox:
+        size_hint: (1,1)
+
+[BoxWithHeader3@BoxLayout]:
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    Header:
+        text: ctx.title
+    VariablePairsBox:
         size_hint: (1,1)

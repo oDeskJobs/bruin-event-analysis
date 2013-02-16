@@ -51,10 +51,27 @@ class MainView(Widget):
         self.behaviors.data = data
         self.behaviors.enable()
 
+class VariablePairer(BoxLayout):
+    current_pick_1 = ObjectProperty(None)
+    current_pick_2 = ObjectProperty(None)
+    ok = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super(VariablePairer, self).__init__(**kwargs)
+
+    def on_current_pick_1(self, instance, value):
+        print self.current_pick_1.text
+
+    def on_current_pick_2(self, instance, value):
+        print self.current_pick_2.text
+
+
+
 class VariablesList(GridLayout):
     variable_list = ListProperty(('1', '2', '3', '4', '5'))
     current_buttons = []
     current_toggled = []
+    current_radio_button = ObjectProperty(None)
     preserve_button_state = BooleanProperty(False)
     radio_button_mode = BooleanProperty(False)
 
@@ -100,9 +117,10 @@ class VariablesList(GridLayout):
 
 
     def button_press(instance, value):
-        print 'button pressed'
         if value.state == 'down':
             value.parent.current_toggled.append(value)
+            if value.parent.radio_button_mode == True:
+                value.parent.current_radio_button = value
         if value.state == 'normal':
             value.parent.current_toggled.remove(value)
 
@@ -115,6 +133,16 @@ class VariablesList(GridLayout):
     def append_test(self, dt):
         print 'adding button'
         self.variable_list.append('6')
+
+class VariablePairsBox(BoxLayout):
+    def __init__(self, **kwargs):
+        super(VariablePairsBox, self).__init__(**kwargs)
+
+    def get_variable_pair(self):
+        self.variable_pairer =VariablePairer()
+        popup = Popup(title='Choose Variable Pairs', content = self.variable_pairer, size_hint = (.6, .6))
+        self.variable_pairer.bind(ok = popup.dismiss)
+        popup.open()
 
 class ListBox(BoxLayout):
     layout = ObjectProperty(None)
