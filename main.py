@@ -377,6 +377,7 @@ class LoadDialog(FloatLayout):
         super(LoadDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
+        self.filechooser.filters = ['*.csv']
         self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
 
 
