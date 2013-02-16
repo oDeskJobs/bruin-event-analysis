@@ -69,8 +69,8 @@ class VariablePairer(BoxLayout):
 
 class VariablesList(GridLayout):
     variable_list = ListProperty(('1', '2', '3', '4', '5'))
-    current_buttons = []
-    current_toggled = []
+    current_buttons = ListProperty(None)
+    current_toggled = ListProperty(None)
     current_radio_button = ObjectProperty(None)
     preserve_button_state = BooleanProperty(False)
     radio_button_mode = BooleanProperty(False)
