@@ -1,7 +1,7 @@
 from kivy.uix.widget import Widget
 from kivy.lang import Builder
 from kivy_plotter.plot import Plot, Series
-from kivy.properties import ObjectProperty, BooleanProperty, StringProperty
+from kivy.properties import ObjectProperty, BooleanProperty, StringProperty, ListProperty
 from kivy.uix.scrollview import ScrollView
 from data_models import TransientDataFile, BehaviorDataFile
 from kivy.uix.popup import Popup
@@ -9,6 +9,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout 
 from kivy.factory import Factory 
 
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.togglebutton import ToggleButton
+from kivy.clock import Clock
 import os
 
 Builder.load_file('ui.kv')
@@ -51,9 +54,115 @@ class MainView(Widget):
         data = [(p[0], 50) for p in b.get_xy_pairs(x='Left Lever Press')]
         self.behaviors.data = data
         self.behaviors.enable()
-    
 
-class ListBox(ScrollView):
+class VariablePairer(BoxLayout):
+    current_pick_1 = ObjectProperty(None)
+    current_pick_2 = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(VariablePairer, self).__init__(**kwargs)
+
+
+
+
+class VariablesList(GridLayout):
+    variable_list = ListProperty(('1', '2', '3', '4', '5'))
+    current_buttons = ListProperty([])
+    current_toggled = ListProperty([])
+    current_radio_button = ObjectProperty(None)
+    preserve_button_state = BooleanProperty(False)
+    radio_button_mode = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super(VariablesList, self).__init__(**kwargs)
+        self.size_hint_y = None
+        Clock.schedule_once(self.init_button_list)
+
+        Clock.schedule_once(self.append_test, 5.0)
+
+    def clear_list(self):
+        for each in self.current_buttons:
+            self.remove_widget(each)
+        self.current_buttons = []
+
+    def init_button_list(self, dt):
+        self.populate_list()
+
+    def populate_list(self):
+        for each in self.variable_list:
+            variable_button = ToggleButton(text = each, on_press = self.button_press)
+            if self.radio_button_mode == True:
+                variable_button.group = self
+            self.add_widget(variable_button)
+            self.current_buttons.append(variable_button)
+        if self.preserve_button_state == True:
+            self.restore_button_state()
+        self.height = len(self.variable_list) * (self.row_default_height + self.spacing)
+
+    def restore_button_state(self):
+        for each in self.current_toggled:
+            for button in self.current_buttons:
+                if each.text == button.text:
+                    button.state = each.state
+        self.reset_current_toggled_list()
+
+    def reset_current_toggled_list(self):
+        self.current_toggled = []
+        for each in self.current_buttons:
+            if each.state == 'down':
+                self.current_toggled.append(each)
+
+
+    def button_press(instance, value):
+        if value.state == 'down':
+            value.parent.current_toggled.append(value)
+            if value.parent.radio_button_mode == True:
+                value.parent.current_radio_button = value
+        if value.state == 'normal':
+            value.parent.current_toggled.remove(value)
+
+
+    def on_variable_list(self, instance, value):
+        self.clear_list()
+        self.canvas.clear()
+        self.populate_list()
+
+    def append_test(self, dt):
+        self.variable_list.append('6')
+
+class VariablePairsBox(BoxLayout):
+    layout = ObjectProperty(None)
+    variable_pairs = ListProperty([])
+
+    def __init__(self, **kwargs):
+        super(VariablePairsBox, self).__init__(**kwargs)
+
+    def get_variable_pair(self):
+        self.variable_pairer =VariablePairer()
+        popup = Popup(title='Choose Variable Pairs', content = self.variable_pairer, size_hint = (.6, .6))
+        self.variable_pairer.dismiss_button.bind(on_press = popup.dismiss)
+        popup.bind(on_dismiss = self.build_pair)
+        popup.open()
+
+    def on_variable_pairs(self, instance, value):
+        self.layout.height = (len(self.variable_pairs) + 1) * self.layout.spacing
+
+    def build_pair(self, *largs):
+        variable_pair = VariablePair()
+        variable_pair.parent_variable_box = self
+        if self.variable_pairer.current_pick_1 != None:
+            variable_one = self.variable_pairer.current_pick_1.text
+            variable_pair.variable_one = variable_one
+        if self.variable_pairer.current_pick_2 != None:
+            variable_two = self.variable_pairer.current_pick_2.text
+            variable_pair.variable_two = variable_two
+
+        self.layout.add_widget(variable_pair)
+        self.variable_pairs.append(variable_pair)
+        
+
+
+class ListBox(BoxLayout):
     layout = ObjectProperty(None)
 
     def __init__(self, **kwargs):
@@ -80,6 +189,31 @@ class ListBox(ScrollView):
             itemsetup.item_info = self.itemname.text
         self.layout.add_widget(itemsetup)
         self.layout.bind(minimum_height=self.layout.setter('height'))
+
+class VariableBox(BoxLayout):
+    variable_list = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(VariableBox, self).__init__(**kwargs)
+
+class VariablePair(BoxLayout):
+    variable_one = StringProperty("Default 1")
+    variable_two = StringProperty("Default 2")
+    toggle_button = ObjectProperty(None)
+    parent_variable_box = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(VariablePair, self).__init__(**kwargs)
+
+    def on_variable_one(self, instance, value):
+        self.toggle_button.text = self.variable_one + ' x ' + self.variable_two
+
+    def on_variable_two(self, instance, value):
+        self.toggle_button.text = self.variable_one + ' x ' + self.variable_two
+
+    def remove_item(self):
+        self.parent.remove_widget(self)
+        self.parent_variable_box.variable_pairs.remove(self)
 
 class GetItemName(Widget):
     ok = BooleanProperty(False)

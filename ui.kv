@@ -1,4 +1,4 @@
-#:kivy 1.0.9
+#:kivy 1.5.1
 
 #:set bg_color (.8, .8, .8)
 #:set box_color (.7, .7, .7)
@@ -86,13 +86,13 @@
             BoxLayout:
                 orientation: 'horizontal'
                 spacing: grid_spacing
-                BoxWithHeader:
+                BoxWithHeader2:
                     title: "Bout Identification"
                     size_hint: (.33, 1)
-                BoxWithHeader:
+                BoxWithHeader3:
                     title: "Transition Identification"
                     size_hint: (.33, 1)
-                BoxWithHeader:
+                BoxWithHeader3:
                     title: "Event Matching"
                     size_hint: (.33, 1)
 
@@ -102,10 +102,10 @@
             id: visualizer
             size_hint: (1, .33)
 
-<ListBox>:
+<VariablePairsBox>:
     layout: layout
     ScrollView:
-        size_hint: (None, None)
+        size_hint: (1, None)
         size: root.size
         do_scroll_x: False
         scroll_distance: 3
@@ -115,13 +115,111 @@
             id: layout
             size_hint: (1, None)
             cols: 1
-            spacing: header_height + listbox_spacing
+            spacing: listbox_spacing
             orientation: 'vertical'
+            spacing: header_height + listbox_spacing
+            Button:
+                text: 'Add Item'
+                on_press: root.get_variable_pair()
+                height: header_height
+                size_hint: (1,None)
+
+<ListBox>:
+    layout: layout
+    ScrollView:
+        size_hint: (1, None)
+        size: root.size
+        do_scroll_x: False
+        scroll_distance: 3
+        scroll_timeout: 50
+
+        GridLayout:
+            id: layout
+            size_hint: (1, None)
+            cols: 1
+            spacing: listbox_spacing
+            orientation: 'vertical'
+            spacing: header_height + listbox_spacing
             Button:
                 text: 'Add Item'
                 on_press: root.get_directions()
                 height: header_height
                 size_hint: (1,None)
+
+<VariablesList>:
+    size_hint: (1, None)
+    cols: 1
+    orientation: 'vertical'
+    spacing: listbox_spacing
+    row_default_height: 30
+
+<VariableBox>:
+    variable_list: variable_list
+    ScrollView:
+        size_hint: (1, None)
+        size: root.size
+        do_scroll_x: False
+        scroll_distance: 3
+        scroll_timeout: 50
+        VariablesList:
+            id: variable_list
+            preserve_button_state: True
+
+<VariablePair>:
+    toggle_button: toggle_button
+    orientation: 'horizontal'
+    Button:
+        text: '-'
+        on_press: root.remove_item()
+        height: header_height
+        width: 30
+        size_hint: (None, None)
+    ToggleButton:
+        id: toggle_button
+        height: header_height
+        text: 'No Variables Chosen'
+        size_hint: (1., None)
+
+
+<VariablePairer>:
+    variable_panel_1: variable_panel_1
+    variable_panel_2: variable_panel_2
+    current_pick_1: variable_panel_1.current_radio_button
+    current_pick_2: variable_panel_2.current_radio_button
+    dismiss_button: dismiss_button
+    orientation: 'vertical'
+    padding: 10
+    spacing: 10
+    BoxLayout:
+        orientation: 'horizontal'
+        spacing: 50
+        ScrollView:
+            size_hint: (1, 1)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            VariablesList:
+                id: variable_panel_1
+                preserve_button_state: True
+                radio_button_mode: True
+                on_current_radio_button: root.current_pick_1 = self.current_radio_button
+        ScrollView:
+            size_hint: (1, 1)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            VariablesList:
+                id: variable_panel_2
+                preserve_button_state: True
+                radio_button_mode: True
+    Button:
+        id: dismiss_button
+        text: 'OK'
+        size_hint_x: .8
+        size_hint_y: .2
+
             
 <GetItemName>:
     BoxLayout:
@@ -269,4 +367,22 @@
     Header:
         text: ctx.title
     ListBox:
+        size_hint: (1,1)
+
+[BoxWithHeader2@BoxLayout]:
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    Header:
+        text: ctx.title
+    VariableBox:
+        size_hint: (1,1)
+
+[BoxWithHeader3@BoxLayout]:
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    Header:
+        text: ctx.title
+    VariablePairsBox:
         size_hint: (1,1)
