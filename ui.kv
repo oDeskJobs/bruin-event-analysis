@@ -299,6 +299,7 @@
             size_hint: (1, None)
 
 <LoadDialog>:
+    filechooser: filechooser
     BoxLayout:
         size: root.size
         pos: root.pos
@@ -318,6 +319,7 @@
                 on_release: root.load(filechooser.path, filechooser.selection)
 
 <SaveDialog>:
+    filechooser: filechooser
     text_input: text_input
     BoxLayout:
         size: root.size

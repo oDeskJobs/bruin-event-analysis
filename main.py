@@ -276,12 +276,26 @@ class LoadSave(Widget):
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
     cancel = ObjectProperty(None)
+    filechooser = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(LoadDialog, self).__init__(**kwargs)
+        # for now just default to user's home directory. In the future, we may want to
+        # add some code to go to the same directory the user was in last time.
+        self.filechooser.path = os.path.expanduser('~')
 
 
 class SaveDialog(FloatLayout):
     save = ObjectProperty(None)
     text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
+    filechooser = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(SaveDialog, self).__init__(**kwargs)
+        # for now just default to user's home directory. In the future, we may want to
+        # add some code to go to the same directory the user was in last time.
+        self.filechooser.path = os.path.expanduser('~')
 
 Factory.register('LoadSave', cls=LoadSave)
 Factory.register('LoadDialog', cls=LoadDialog)
