@@ -54,23 +54,17 @@ class MainView(Widget):
 class VariablePairer(BoxLayout):
     current_pick_1 = ObjectProperty(None)
     current_pick_2 = ObjectProperty(None)
-    ok = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super(VariablePairer, self).__init__(**kwargs)
 
-    def on_current_pick_1(self, instance, value):
-        print self.current_pick_1.text
-
-    def on_current_pick_2(self, instance, value):
-        print self.current_pick_2.text
 
 
 
 class VariablesList(GridLayout):
     variable_list = ListProperty(('1', '2', '3', '4', '5'))
-    current_buttons = ListProperty(None)
-    current_toggled = ListProperty(None)
+    current_buttons = ListProperty([])
+    current_toggled = ListProperty([])
     current_radio_button = ObjectProperty(None)
     preserve_button_state = BooleanProperty(False)
     radio_button_mode = BooleanProperty(False)
@@ -83,7 +77,6 @@ class VariablesList(GridLayout):
         Clock.schedule_once(self.append_test, 5.0)
 
     def clear_list(self):
-        print len(self.current_buttons)
         for each in self.current_buttons:
             self.remove_widget(each)
         self.current_buttons = []
@@ -131,18 +124,39 @@ class VariablesList(GridLayout):
         self.populate_list()
 
     def append_test(self, dt):
-        print 'adding button'
         self.variable_list.append('6')
 
 class VariablePairsBox(BoxLayout):
+    layout = ObjectProperty(None)
+    variable_pairs = ListProperty([])
+
     def __init__(self, **kwargs):
         super(VariablePairsBox, self).__init__(**kwargs)
 
     def get_variable_pair(self):
         self.variable_pairer =VariablePairer()
         popup = Popup(title='Choose Variable Pairs', content = self.variable_pairer, size_hint = (.6, .6))
-        self.variable_pairer.bind(ok = popup.dismiss)
+        self.variable_pairer.dismiss_button.bind(on_press = popup.dismiss)
+        popup.bind(on_dismiss = self.build_pair)
         popup.open()
+
+    def on_variable_pairs(self, instance, value):
+        self.layout.height = (len(self.variable_pairs) + 1) * self.layout.spacing
+
+    def build_pair(self, *largs):
+        variable_pair = VariablePair()
+        variable_pair.parent_variable_box = self
+        if self.variable_pairer.current_pick_1 != None:
+            variable_one = self.variable_pairer.current_pick_1.text
+            variable_pair.variable_one = variable_one
+        if self.variable_pairer.current_pick_2 != None:
+            variable_two = self.variable_pairer.current_pick_2.text
+            variable_pair.variable_two = variable_two
+
+        self.layout.add_widget(variable_pair)
+        self.variable_pairs.append(variable_pair)
+        
+
 
 class ListBox(BoxLayout):
     layout = ObjectProperty(None)
@@ -171,6 +185,26 @@ class VariableBox(BoxLayout):
 
     def __init__(self, **kwargs):
         super(VariableBox, self).__init__(**kwargs)
+
+class VariablePair(BoxLayout):
+    variable_one = StringProperty("Default 1")
+    variable_two = StringProperty("Default 2")
+    toggle_button = ObjectProperty(None)
+    parent_variable_box = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(VariablePair, self).__init__(**kwargs)
+
+    def on_variable_one(self, instance, value):
+        self.toggle_button.text = self.variable_one + ' x ' + self.variable_two
+
+    def on_variable_two(self, instance, value):
+        self.toggle_button.text = self.variable_one + ' x ' + self.variable_two
+
+    def remove_item(self):
+        self.parent.remove_widget(self)
+        self.parent_variable_box.variable_pairs.remove(self)
+
 
 class GetItemName(Widget):
     

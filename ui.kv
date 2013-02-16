@@ -92,7 +92,7 @@
                 BoxWithHeader3:
                     title: "Transition Identification"
                     size_hint: (.33, 1)
-                BoxWithHeader:
+                BoxWithHeader3:
                     title: "Event Matching"
                     size_hint: (.33, 1)
 
@@ -165,16 +165,33 @@
             id: variable_list
             preserve_button_state: True
 
+<VariablePair>:
+    toggle_button: toggle_button
+    orientation: 'horizontal'
+    Button:
+        text: '-'
+        on_press: root.remove_item()
+        height: header_height
+        width: 30
+        size_hint: (None, None)
+    ToggleButton:
+        id: toggle_button
+        height: header_height
+        text: 'No Variables Chosen'
+        size_hint: (1., None)
+
+
 <VariablePairer>:
     variable_panel_1: variable_panel_1
     variable_panel_2: variable_panel_2
     current_pick_1: variable_panel_1.current_radio_button
     current_pick_2: variable_panel_2.current_radio_button
+    dismiss_button: dismiss_button
     orientation: 'vertical'
     padding: 10
     spacing: 10
     BoxLayout:
-        orentation: 'horizontal'
+        orientation: 'horizontal'
         spacing: 50
         ScrollView:
             size_hint: (1, 1)
@@ -198,10 +215,10 @@
                 preserve_button_state: True
                 radio_button_mode: True
     Button:
+        id: dismiss_button
         text: 'OK'
         size_hint_x: .8
         size_hint_y: .2
-        on_release: root.ok = True
 
             
 <GetItemName>:
