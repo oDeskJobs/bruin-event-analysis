@@ -71,6 +71,9 @@ class ListBox(ScrollView):
         self.layout.add_widget(itemsetup)
         self.layout.bind(minimum_height=self.layout.setter('height'))
 
+    def scrolling(self, value):
+        self.scroll.scroll_y = value
+
 
 class GetItemName(Widget):
     

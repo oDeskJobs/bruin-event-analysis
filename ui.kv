@@ -104,26 +104,38 @@
 
 <ListBox>:
     layout: layout
-    ScrollView:
-        size_hint: (None, None)
-        size: root.size
-        do_scroll_x: False
-        scroll_distance: 3
-        scroll_timeout: 50
-        bar_width: 15
+    scroll: scroll
+    BoxLayout:
+        size_hint: (1,1)
+        orientation: 'horizontal'
+        ScrollView:
+            id: scroll
+            size_hint: (.8, None)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            bar_width: 0
 
-        GridLayout:
-            id: layout
-            size_hint: (1, None)
-            cols: 1
-            spacing: header_height + listbox_spacing
+            GridLayout:
+                id: layout
+                size_hint: (1, None)
+                cols: 1
+                spacing: header_height + listbox_spacing
+                orientation: 'vertical'
+                Button:
+                    text: 'Add Item'
+                    on_press: root.item_info()
+                    height: header_height
+                    width: root.size[0] - 20
+                    size_hint: (None,None)
+        Slider:
+            size_hint: (.1,1)
             orientation: 'vertical'
-            Button:
-                text: 'Add Item'
-                on_press: root.item_info()
-                height: header_height
-                width: root.size[0] - 20
-                size_hint: (None,None)
+            min: 0
+            max: 1
+            value: root.scroll.scroll_y
+            on_value: root.scrolling(self.value)
             
 <GetItemName>:
     BoxLayout:
