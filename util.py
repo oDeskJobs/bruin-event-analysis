@@ -1,11 +1,15 @@
 from kivy_plotter.plot import Series
+from kivy.properties import ListProperty
+from kivy.uix.widget import Widget
 
 
-class SeriesController(object):
+
+class SeriesController(Widget):
 
     series_dict = {}
     tick_height = 20
     tick_width = 5
+    all_variables_list = ListProperty([])
 
     def __init__(self, visualizer):
         self.visualizer = visualizer
@@ -21,10 +25,15 @@ class SeriesController(object):
         t = self.series_dict[label]
         if t.data is None: t.data = []
         t.data = t.data + xy_data
+        if label not in self.all_variables_list: self.all_variables_list.append(label)
+        print "Adding %s data points to series '%s'; series now contains %s items." % (len(xy_data), label, len(t.data))
+
+    def clear(self, label):
+        if label in self.series_dict: self.series_dict[label].data = []
+        if label in self.all_variables_list: self.all_variables_list.remove(label)
 
     def enable(self, label):
         self.series_dict[label].enable()
-        self.fit_to_all_series()
 
     def disable(self, label):
         self.series_dict[label].disable()

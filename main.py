@@ -27,9 +27,8 @@ class MainView(Widget):
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
 
-    valid_time_fields = ListProperty([])
-
     legend_width = NumericProperty(200)
+
 
     def __init__(self, **kwargs):
         super(MainView, self).__init__(**kwargs)
@@ -37,6 +36,7 @@ class MainView(Widget):
         self.behavior_files = []
         self.setup_visualizer()
         self.series_controller = SeriesController(self.visualizer)
+        self.series_controller.bind(all_variables_list = self.all_variables_changed)
 
         self.transient_button_list = self.transient_box.listbox.variable_list
         self.transient_button_list.bind(current_toggled=self.transient_select_changed)
@@ -73,8 +73,6 @@ class MainView(Widget):
             print "%s has already been imported for this subject. Aborting." % (path,)
             return
 
-        data = [p for p in t.get_xy_pairs()]
-        self.series_controller.add_data('transients', data)
         self.transient_files.append(t)
 
     def on_transient_files(self, instance, value):
@@ -83,9 +81,13 @@ class MainView(Widget):
 
     def transient_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
-        
-        # this isn't actually what this button is for, but for testing let's make it enable the transient series
-        self.series_controller.enable('transients')
+        self.series_controller.clear('Transients')
+        for t in self.transient_files:
+            if os.path.basename(t.source_file) in selected_basenames:
+                data = [p for p in t.get_xy_pairs()]
+                self.series_controller.add_data('Transients', data)
+
+
 
     def _add_behavior_file(self, path):
         schema_file = os.path.splitext(path)[0] + '.schema'
@@ -136,7 +138,7 @@ class MainView(Widget):
                 new_fields = new_fields.union(set(f.get_valid_time_columns()))
         self.valid_time_fields = sorted(list(new_fields))
 
-    def on_valid_time_fields(self, instance, value):
+    def all_variables_changed(self, instance, value):
         self.bout_id_box.listbox.variable_list.variable_list = value
 
 class VariablePairer(BoxLayout):
