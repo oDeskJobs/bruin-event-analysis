@@ -1,17 +1,19 @@
 from kivy.uix.widget import Widget
 from kivy.lang import Builder
-from kivy_plotter.plot import Plot, Series
-from kivy.properties import ObjectProperty, BooleanProperty, StringProperty, ListProperty
+from kivy_plotter.plot import Plot
+from kivy.properties import ObjectProperty, BooleanProperty, StringProperty, ListProperty, NumericProperty
 from kivy.uix.scrollview import ScrollView
-from data_models import TransientDataFile, BehaviorDataFile
 from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout 
 from kivy.factory import Factory 
-
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.clock import Clock
+
+from data_models import TransientDataFile, BehaviorDataFile
+from util import SeriesController
+
 import os
 
 Builder.load_file('ui.kv')
@@ -25,16 +27,16 @@ class MainView(Widget):
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
 
-    transient_series = []
-    behavior_series = []
-
     valid_time_fields = ListProperty([])
+
+    legend_width = NumericProperty(200)
 
     def __init__(self, **kwargs):
         super(MainView, self).__init__(**kwargs)
         self.transient_files = []
         self.behavior_files = []
         self.setup_visualizer()
+        self.series_controller = SeriesController(self.visualizer)
 
         self.transient_button_list = self.transient_box.listbox.variable_list
         self.transient_button_list.bind(current_toggled=self.transient_select_changed)
@@ -52,24 +54,6 @@ class MainView(Widget):
         v.viewport = [0,0,50,100]
         v.tick_distance_x = 30
         v.tick_distance_y = 20
-
-    def load_transients(self):
-        t = TransientDataFile('sample data/CV5_Inst5aSuc_DATransientData.csv')
-        self.transients = Series(self.visualizer, fill_color = (.68, .42, .73), ick_width = 4, tick_height = 15)
-
-        data = [p for p in t.get_xy_pairs()]
-        self.transients.data = data
-        self.transients.marker = 'tick'
-        self.transients.resize_plot_from_data()
-        self.transients.enable()
-        
-    def load_behavior(self):
-        b = BehaviorDataFile('sample data/Example_BehaviorData with more variables.csv', 'sample data/Example_BehaviorData with more variables.schema')
-        self.behaviors = Series(self.visualizer, fill_color = (.13, .24, .62), marker = 'plus', tick_height = 20, tick_width = 5)
-        # we definitely want a better way of handling Boolean data than just assigning it a hardcoded y value like this
-        data = [(p[0], 50) for p in b.get_xy_pairs(x='Left Lever Press')]
-        self.behaviors.data = data
-        self.behaviors.enable()
 
     def prompt_for_transient_file(self):
         LoadSave(action='load', callback=self._add_transient_file)
@@ -89,13 +73,8 @@ class MainView(Widget):
             print "%s has already been imported for this subject. Aborting." % (path,)
             return
 
-        s = Series(self.visualizer, fill_color = (.68, .42, .73), ick_width = 4, tick_height = 15)
         data = [p for p in t.get_xy_pairs()]
-        s.data = data
-        s.marker = 'tick'
-        s.source_file = t.source_file
-
-        self.transient_series.append(s)
+        self.series_controller.add_data('transients', data)
         self.transient_files.append(t)
 
     def on_transient_files(self, instance, value):
@@ -105,12 +84,8 @@ class MainView(Widget):
     def transient_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
         
-        for s in self.transient_series:
-            if os.path.basename(s.source_file) in selected_basenames:
-                s.resize_plot_from_data()
-                s.enable()
-            else:
-                s.disable()
+        # this isn't actually what this button is for, but for testing let's make it enable the transient series
+        self.series_controller.enable('transients')
 
     def _add_behavior_file(self, path):
         schema_file = os.path.splitext(path)[0] + '.schema'
@@ -129,7 +104,8 @@ class MainView(Widget):
             print "%s has already been imported for this subject. Aborting." % (path,)
             return
 
-        s = Series(self.visualizer, fill_color = (.13, .24, .62), marker = 'plus', tick_height = 20, tick_width = 5)
+        # right here we need to create a series FOR EACH VARIABLE, and have them go down to the legend pane.
+        s = Series(self.visualizer, fill_color = color_palette.get_color(t.source_file), marker = 'plus', tick_height = 20, tick_width = 5)
         # we definitely want a better way of handling Boolean data than just assigning it a hardcoded y value like this
         data = [(p[0], 50) for p in t.get_xy_pairs(x='Left Lever Press')]
         print data
@@ -169,9 +145,6 @@ class VariablePairer(BoxLayout):
 
     def __init__(self, **kwargs):
         super(VariablePairer, self).__init__(**kwargs)
-
-
-
 
 class VariablesList(GridLayout):
     variable_list = ListProperty([])
@@ -266,8 +239,6 @@ class VariablePairsBox(BoxLayout):
         self.layout.add_widget(variable_pair)
         self.variable_pairs.append(variable_pair)
         
-
-
 class ListBox(BoxLayout):
     layout = ObjectProperty(None)
     contents = ListProperty([])
@@ -284,7 +255,6 @@ class ListBox(BoxLayout):
             assert isinstance(s, basestring)
             self.layout.add_widget(ListItem(item_info = s))
         self.layout.bind(minimum_height=self.layout.setter('height'))
-
 
 class VariableBox(BoxLayout):
     variable_list = ObjectProperty(None)
@@ -392,6 +362,8 @@ class SaveDialog(FloatLayout):
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
         self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
+
+
 
 Factory.register('LoadSave', cls=LoadSave)
 Factory.register('LoadDialog', cls=LoadDialog)

@@ -16,11 +16,10 @@ def drange(start, stop, step):
 class Series(Widget):
     fill_color = ListProperty([1,1,1])
     enabled = BooleanProperty(False)
-    data = ListProperty(None)
+    data = ListProperty([])
     tick_width = NumericProperty(5)
     tick_height = NumericProperty(32)
     marker = StringProperty('tick')
-    source_file = StringProperty(None)
 
     def __init__(self, plot, **kwargs):
         kwargs['size_hint'] = (None, None)
@@ -37,12 +36,13 @@ class Series(Widget):
         self.plot.bind(pos = self._set_pos)
         self.plot.bind(viewport = self.draw)
 
-        
 
     def enable(self):
+        self.enabled = True
         self.plot.add_widget(self)
 
     def disable(self):
+        self.enabled = False
         self.plot.remove_widget(self)
 
     def resize_plot_from_data(self):
@@ -101,6 +101,12 @@ class Series(Widget):
     def on_size(self, instance, value):
         self.draw()
 
+    def get_legend_icon(self, size=32, **kwargs):
+        # returns a kivy Image widget that matches the tick mark used in self.draw, for use in legends etc
+        ic = Widget(size_hint = (None, None), size = (size,size))
+        with ic.canvas:
+            Color(1,1,1, mode='rgb')
+            Rectangle(pos=ic.pos, size=ic.size)
 
 class Plot(Widget):
     viewport = ListProperty([0,0,100,10])

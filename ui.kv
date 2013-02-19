@@ -82,7 +82,7 @@
             BoxLayout:
                 orientation: 'horizontal'
                 spacing: grid_spacing
-                BoxWithHeader2:
+                BoxWithHeaderNoAdd:
                     id: bout_id_box
                     title: "Bout Identification"
                     size_hint: (.33, 1)
@@ -95,9 +95,17 @@
 
 
         # layout containing the visualization panel
-        Plot:
-            id: visualizer
+        BoxLayout:
             size_hint: (1, .33)
+            orientation: 'horizontal'
+            spacing: grid_spacing
+            Plot:
+                id: visualizer
+                size_hint: (1, 1)
+            BoxWithHeaderNoAdd:
+                title: "Legend"
+                size_hint: (None, 1)
+                size: (root.legend_width, 100)
 
 <VariablePairsBox>:
     layout: layout
@@ -370,7 +378,7 @@
         size_hint: (1,1)
     BoxLayout:
         size_hint: (1, None)
-        height: 32 + 2*grid_spacing
+        height: 32
         padding: grid_spacing
         orientation: 'horizontal'
         Widget:
@@ -381,6 +389,25 @@
             size_hint: (None, None) 
             size: (32, 32)
             on_release: ctx.add_button_callback()
+
+[BoxWithHeaderNoAdd@BoxLayout]:
+    listbox: listbox
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    size: ctx.size if hasattr(ctx, 'size') else (100,100)
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: ctx.title
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+
 
 [BoxWithHeader2@BoxLayout]:
     listbox: listbox
