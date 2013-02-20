@@ -135,6 +135,9 @@ class BehaviorDataFile(object):
             for i, t in enumerate(self.data[x]):
                 yield (t, self.data[y][i])
 
+    def get_valid_time_columns(self):
+        return [x[0] for x in self.schema]
+
 class BehaviorLog(object):
     """Represents a set of instances of a certain type of behavior. At its simplest, this is just a list of timestamps
     and a behavior name. It can also include a dictionary of corresponding key: value metadata pairs."""

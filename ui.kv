@@ -1,4 +1,4 @@
-#:kivy 1.0.9
+#:kivy 1.5.1
 
 #:set bg_color (.8, .8, .8)
 #:set box_color (.7, .7, .7)
@@ -11,6 +11,11 @@
 
 <MainView>:
     visualizer: visualizer
+    transient_box: transient_box
+    behavior_box: behavior_box
+    bout_id_box: bout_id_box
+    legend_box: legend_box
+
     canvas:
         Color:
             rgb: bg_color
@@ -32,9 +37,11 @@
             BoxWithHeader:
                 title: "Sessions"
                 size_hint: (.2,1)
+                add_button_callback: None
             BoxWithHeader:
                 title: "Subjects"
                 size_hint: (.2, 1)
+                add_button_callback: None
             BoxLayout:
                 orientation: 'vertical'
                 spacing: grid_spacing
@@ -49,30 +56,20 @@
                         orientation: 'vertical'
                         spacing: grid_spacing
                         size_hint: (.5, 1)
-                        Header:
-                            text: "Transients"
-                        Button:
-                            text: "Import sample (test)"
-                            size_hint: (1, None)
-                            on_release: root.load_transients()
-                            height: header_height
-                            background_color: (1,0,0,1)
-                        ListBox:
+                        BoxWithHeader:
+                            id: transient_box
+                            title: "Transients"
                             size_hint: (1,1)
+                            add_button_callback: root.prompt_for_transient_file
                     BoxLayout:
                         orientation: 'vertical'
                         spacing: grid_spacing
                         size_hint: (.5, 1)
-                        Header:
-                            text: "Behavior"
-                        Button:
-                            text: "Import sample (test)"
-                            size_hint: (1, None)
-                            on_release: root.load_behavior()
-                            height: header_height
-                            background_color: (1,0,0,1)
-                        ListBox:
+                        BoxWithHeader:
+                            id: behavior_box
+                            title: "Behavior"
                             size_hint: (1,1)
+                            add_button_callback: root.prompt_for_behavior_file
 
 
 
@@ -86,26 +83,58 @@
             BoxLayout:
                 orientation: 'horizontal'
                 spacing: grid_spacing
-                BoxWithHeader:
+                BoxWithHeaderNoAdd:
+                    id: bout_id_box
                     title: "Bout Identification"
                     size_hint: (.33, 1)
-                BoxWithHeader:
+                BoxWithHeader3:
                     title: "Transition Identification"
                     size_hint: (.33, 1)
-                BoxWithHeader:
+                BoxWithHeader3:
                     title: "Event Matching"
                     size_hint: (.33, 1)
 
 
         # layout containing the visualization panel
-        Plot:
-            id: visualizer
+        BoxLayout:
             size_hint: (1, .33)
+            orientation: 'horizontal'
+            spacing: grid_spacing
+            Plot:
+                id: visualizer
+                size_hint: (1, 1)
+            BoxWithHeaderNoAdd:
+                id: legend_box
+                title: "Available Series"
+                size_hint: (None, 1)
+                size: (root.legend_width, 100)
+
+<VariablePairsBox>:
+    layout: layout
+    ScrollView:
+        size_hint: (1, None)
+        size: root.size
+        do_scroll_x: False
+        scroll_distance: 3
+        scroll_timeout: 50
+
+        GridLayout:
+            id: layout
+            size_hint: (1, None)
+            cols: 1
+            spacing: listbox_spacing
+            orientation: 'vertical'
+            spacing: header_height + listbox_spacing
+            Button:
+                text: 'Add Item'
+                on_press: root.get_variable_pair()
+                height: header_height
+                size_hint: (1,None)
 
 <ListBox>:
     layout: layout
     ScrollView:
-        size_hint: (None, None)
+        size_hint: (1, None)
         size: root.size
         do_scroll_x: False
         scroll_distance: 3
@@ -116,12 +145,81 @@
             size_hint: (1, None)
             cols: 1
             spacing: header_height + listbox_spacing
-            orientation: 'vertical'
-            Button:
-                text: 'Add Item'
-                on_press: root.item_info()
-                height: header_height
-                size_hint: (1,None)
+
+<VariablesList>:
+    size_hint: (1, None)
+    cols: 1
+    orientation: 'vertical'
+    spacing: listbox_spacing
+    row_default_height: 30
+
+<VariableBox>:
+    variable_list: variable_list
+    ScrollView:
+        size_hint: (1, None)
+        size: root.size
+        do_scroll_x: False
+        scroll_distance: 3
+        scroll_timeout: 50
+        VariablesList:
+            id: variable_list
+            preserve_button_state: True
+
+<VariablePair>:
+    toggle_button: toggle_button
+    orientation: 'horizontal'
+    Button:
+        text: '-'
+        on_press: root.remove_item()
+        height: header_height
+        width: 30
+        size_hint: (None, None)
+    ToggleButton:
+        id: toggle_button
+        height: header_height
+        text: 'No Variables Chosen'
+        size_hint: (1., None)
+
+
+<VariablePairer>:
+    variable_panel_1: variable_panel_1
+    variable_panel_2: variable_panel_2
+    current_pick_1: variable_panel_1.current_radio_button
+    current_pick_2: variable_panel_2.current_radio_button
+    dismiss_button: dismiss_button
+    orientation: 'vertical'
+    padding: 10
+    spacing: 10
+    BoxLayout:
+        orientation: 'horizontal'
+        spacing: 50
+        ScrollView:
+            size_hint: (1, 1)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            VariablesList:
+                id: variable_panel_1
+                preserve_button_state: True
+                radio_button_mode: True
+                on_current_radio_button: root.current_pick_1 = self.current_radio_button
+        ScrollView:
+            size_hint: (1, 1)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            VariablesList:
+                id: variable_panel_2
+                preserve_button_state: True
+                radio_button_mode: True
+    Button:
+        id: dismiss_button
+        text: 'OK'
+        size_hint_x: .8
+        size_hint_y: .2
+
             
 <GetItemName>:
     BoxLayout:
@@ -158,7 +256,28 @@
                 size_hint_x: .2
                 size_hint_y: 1
 
-<ItemSetup>:
+<LoadSave>:
+    BoxLayout:
+        orientation: 'vertical'
+        pos: root.pos
+        size: root.size
+        spacing: 10
+        padding: 20
+        BoxLayout:
+            orientation: 'horizontal'
+            spacing: 20
+            Button:
+                text: 'Load Existing'
+                size_hint: (.5, .9)
+                on_release: root.show_load()
+                on_state: root.ok = True
+            Button:
+                text: 'Save New'
+                size_hint: (.5, .9)
+                on_release: root.show_save()
+                on_state: root.ok = True
+        
+<ListItem>:
     BoxLayout:
         pos: root.pos
         size: root.size
@@ -179,6 +298,54 @@
             height: header_height
             size_hint: (1, None)
 
+<LoadDialog>:
+    filechooser: filechooser
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
+
+<SaveDialog>:
+    filechooser: filechooser
+    text_input: text_input
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            on_selection: text_input.text = self.selection and self.selection[0] or ''
+
+        TextInput:
+            id: text_input
+            size_hint_y: None
+            height: 30
+            multiline: False
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, text_input.text)
+
 [Header@Widget]:
     id: label_bg
     size_hint: (1, None)
@@ -196,10 +363,70 @@
         size: label_bg.size
 
 [BoxWithHeader@BoxLayout]:
+    listbox: listbox
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: ctx.title
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: ctx.add_button_callback()
+
+[BoxWithHeaderNoAdd@BoxLayout]:
+    listbox: listbox
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    size: ctx.size if hasattr(ctx, 'size') else (100,100)
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: ctx.title
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+
+
+[BoxWithHeader2@BoxLayout]:
+    listbox: listbox
     orientation: 'vertical'
     spacing: grid_spacing
     size_hint: ctx.size_hint
     Header:
         text: ctx.title
-    ListBox:
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+
+[BoxWithHeader3@BoxLayout]:
+    orientation: 'vertical'
+    spacing: grid_spacing
+    size_hint: ctx.size_hint
+    Header:
+        text: ctx.title
+    VariablePairsBox:
         size_hint: (1,1)
