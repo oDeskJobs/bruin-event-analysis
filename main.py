@@ -1,7 +1,7 @@
 from kivy.uix.widget import Widget
 from kivy.lang import Builder
 from kivy_plotter.plot import Plot, Series
-from kivy.properties import ObjectProperty, BooleanProperty, StringProperty
+from kivy.properties import ObjectProperty, BooleanProperty, StringProperty, NumericProperty
 from kivy.uix.scrollview import ScrollView
 from data_models import TransientDataFile, BehaviorDataFile
 from kivy.uix.popup import Popup
@@ -51,10 +51,12 @@ class MainView(Widget):
 
 class ListBox(ScrollView):
     layout = ObjectProperty(None)
+    scroll_pos = NumericProperty(0)
+    scroll_size = NumericProperty(200)
 
     def __init__(self, **kwargs):
         super(ListBox, self).__init__(**kwargs)
-
+        
     def item_info(self):
         self.itemname = GetItemName()
         popup = Popup(title='Create New Parameter', content = self.itemname, size_hint=(.4,.4))
@@ -72,8 +74,31 @@ class ListBox(ScrollView):
         self.layout.bind(minimum_height=self.layout.setter('height'))
 
     def scrolling(self, value):
-        self.scroll.scroll_y = value
+        view_size = self.size[1]
+        self.scroll_pos = value[0] * view_size
+        self.scroll_size = value[1] * view_size
 
+    def move_scroll_y(self, touch_y):
+        grab_location = touch_y - self.scroll_pos - self.pos[1]
+        self.scroll.scroll_y = (touch_y - self.pos[1] + grab_location)/self.size[1]
+
+class ScrollBar(Widget):
+    def __init__(self, **kwargs):
+        super(ScrollBar, self).__init__(**kwargs) 
+    
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            touch.grab(self)
+            return True
+
+    def on_touch_move(self, touch):
+        if touch.grab_current == self:
+            self.parent.parent.move_scroll_y(touch.pos[1])
+            return True
+
+    def on_touch_up(self, touch):
+        if touch.grab_current == self:
+            return True
 
 class GetItemName(Widget):
     

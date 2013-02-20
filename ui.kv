@@ -105,17 +105,19 @@
 <ListBox>:
     layout: layout
     scroll: scroll
+    scrollbar: scrollbar
     BoxLayout:
         size_hint: (1,1)
         orientation: 'horizontal'
         ScrollView:
             id: scroll
-            size_hint: (.8, None)
+            size_hint: (1, None)
             size: root.size
             do_scroll_x: False
             scroll_distance: 3
             scroll_timeout: 50
             bar_width: 0
+            on_vbar: root.scrolling(self.vbar)
 
             GridLayout:
                 id: layout
@@ -129,13 +131,20 @@
                     height: header_height
                     width: root.size[0] - 20
                     size_hint: (None,None)
-        Slider:
-            size_hint: (.1,1)
-            orientation: 'vertical'
-            min: 0
-            max: 1
-            value: root.scroll.scroll_y
-            on_value: root.scrolling(self.value)
+        ScrollBar:
+            id: scrollbar
+            size_hint: None,None
+            pos: root.pos[0] + root.size[0]-20, root.pos[1] + root.scroll_pos
+            size: 20, root.scroll_size
+
+<ScrollBar>:
+    size_hint: 1,1
+    canvas:
+        Color:
+            rgb: .1,.1,.2
+        Rectangle:
+            pos: self.pos
+            size: self.size
             
 <GetItemName>:
     BoxLayout:
