@@ -22,7 +22,8 @@ class MainView(Widget):
     visualizer = ObjectProperty(None)
     transient_box = ObjectProperty(None)
     behavior_box = ObjectProperty(None)
-    bout_id_box = ObjectProperty(None)
+    behavior_box = ObjectProperty(None)
+    legend_box = ObjectProperty(None)
 
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
@@ -43,6 +44,13 @@ class MainView(Widget):
 
         self.behavior_button_list = self.behavior_box.listbox.variable_list
         self.behavior_button_list.bind(current_toggled=self.behavior_select_changed)
+
+        self.legend_button_list = self.legend_box.listbox.variable_list
+        self.legend_button_list.bind(current_toggled=self.visible_series_changed)
+
+        # define a function that tells which labels should come before other labels. Ensures that "Transients"
+        # always appears first, and then subsequent labels are sorted by alphabetical order
+        self.label_sort_func = lambda x: '0000000' if x.lower() == 'transients' else x
 
     def setup_visualizer(self):
         v = self.visualizer
@@ -76,18 +84,29 @@ class MainView(Widget):
         self.transient_files.append(t)
 
     def on_transient_files(self, instance, value):
-        l = self.transient_box.listbox.variable_list
-        l.variable_list = [os.path.basename(t.source_file) for t in self.transient_files]
+        self.transient_button_list.variable_list = [os.path.basename(t.source_file) for t in self.transient_files]
+
+    def on_behavior_files(self, instance, value):
+        self.behavior_button_list.variable_list = [os.path.basename(t.source_file) for t in self.behavior_files]
 
     def transient_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
-        self.series_controller.clear('Transients')
+        self.series_controller.clear(label = 'Transients')
         for t in self.transient_files:
             if os.path.basename(t.source_file) in selected_basenames:
                 data = [p for p in t.get_xy_pairs()]
                 self.series_controller.add_data('Transients', data)
 
+    def behavior_select_changed(self, instance, value):
+        selected_basenames = [v.text for v in value]
+        
+        self.series_controller.clear(except_label = 'Transients')
+        for s in self.behavior_files:
+            if os.path.basename(s.source_file) in selected_basenames:
+                for field in s.get_valid_time_columns():
 
+                    data = [(p[0], 50) for p in s.get_xy_pairs(x=field)]
+                    self.series_controller.add_data(field, data)
 
     def _add_behavior_file(self, path):
         schema_file = os.path.splitext(path)[0] + '.schema'
@@ -106,6 +125,10 @@ class MainView(Widget):
             print "%s has already been imported for this subject. Aborting." % (path,)
             return
 
+
+        self.behavior_files.append(t)
+        return
+
         # right here we need to create a series FOR EACH VARIABLE, and have them go down to the legend pane.
         s = Series(self.visualizer, fill_color = color_palette.get_color(t.source_file), marker = 'plus', tick_height = 20, tick_width = 5)
         # we definitely want a better way of handling Boolean data than just assigning it a hardcoded y value like this
@@ -117,29 +140,17 @@ class MainView(Widget):
         self.behavior_series.append(s)
         self.behavior_files.append(t)
 
-    def on_behavior_files(self, instance, value):
-        l = self.behavior_box.listbox.variable_list
-        l.variable_list = [os.path.basename(t.source_file) for t in self.behavior_files]
 
-    def behavior_select_changed(self, instance, value):
-        selected_basenames = [v.text for v in value]
-        
-        # enable the right series in the visualizer
-        for s in self.behavior_series:
-            if os.path.basename(s.source_file) in selected_basenames:
-                s.enable()
-            else:
-                s.disable()
 
-        # and now enable the correct fields in the data processing pane
-        new_fields = set([])
-        for f in self.behavior_files:
-            if os.path.basename(f.source_file) in selected_basenames:
-                new_fields = new_fields.union(set(f.get_valid_time_columns()))
-        self.valid_time_fields = sorted(list(new_fields))
 
     def all_variables_changed(self, instance, value):
-        self.bout_id_box.listbox.variable_list.variable_list = value
+        # print value
+        self.bout_id_box.listbox.variable_list.variable_list = sorted(value, key=self.label_sort_func)
+        self.legend_box.listbox.variable_list.variable_list = sorted(value, key=self.label_sort_func)
+
+    def visible_series_changed(self, instance, value):
+        selected_series = [v.text for v in value]
+        self.series_controller.update_visible_series(selected_series)
 
 class VariablePairer(BoxLayout):
     current_pick_1 = ObjectProperty(None)

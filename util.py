@@ -25,12 +25,30 @@ class SeriesController(Widget):
         t = self.series_dict[label]
         if t.data is None: t.data = []
         t.data = t.data + xy_data
-        if label not in self.all_variables_list: self.all_variables_list.append(label)
+        if label not in self.all_variables_list and len(t.data) > 0: self.all_variables_list.append(label)
+        # print self.all_variables_list
         print "Adding %s data points to series '%s'; series now contains %s items." % (len(xy_data), label, len(t.data))
 
-    def clear(self, label):
-        if label in self.series_dict: self.series_dict[label].data = []
-        if label in self.all_variables_list: self.all_variables_list.remove(label)
+
+    def clear(self, label = None, except_label = None):
+        # use clear(label=name) to clear a given column, or use clear(except_label=name) to remove all columns *except* a given column
+        if label is not None:
+            if label in self.series_dict: self.series_dict[label].data = []
+            if label in self.all_variables_list: self.all_variables_list.remove(label)
+        elif except_label is not None:
+            for each in self.all_variables_list:
+                if each != except_label:
+                    self.series_dict[each].data = []
+            self.all_variables_list = [except_label] if except_label in self.all_variables_list else []
+
+    def update_visible_series(self, list_of_labels):
+        for label in self.series_dict.keys():
+            if label in list_of_labels:
+                self.enable(label)
+            else:
+                self.disable(label)
+        if len(list_of_labels) > 0:
+            self.fit_to_all_series()
 
     def enable(self, label):
         self.series_dict[label].enable()
@@ -63,12 +81,11 @@ class ColorPalette(object):
     ]
 
     color_dict = {}
-
-    def __init__(self):
-        self.color_generator = (c for c in self.colors)
+    next_color_up = 0
 
     def get_and_assign_color(self, label):
-        c = self.color_generator.next()
+        c = self.colors[self.next_color_up]
+        self.next_color_up = (self.next_color_up + 1) % len(self.colors)
         self.color_dict[label] = c
         return c
 

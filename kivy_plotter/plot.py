@@ -38,10 +38,14 @@ class Series(Widget):
 
 
     def enable(self):
+        if self.enabled:
+            return
         self.enabled = True
         self.plot.add_widget(self)
 
     def disable(self):
+        if not self.enabled:
+            return
         self.enabled = False
         self.plot.remove_widget(self)
 

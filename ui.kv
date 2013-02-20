@@ -14,6 +14,7 @@
     transient_box: transient_box
     behavior_box: behavior_box
     bout_id_box: bout_id_box
+    legend_box: legend_box
 
     canvas:
         Color:
@@ -103,7 +104,8 @@
                 id: visualizer
                 size_hint: (1, 1)
             BoxWithHeaderNoAdd:
-                title: "Legend"
+                id: legend_box
+                title: "Available Series"
                 size_hint: (None, 1)
                 size: (root.legend_width, 100)
 
