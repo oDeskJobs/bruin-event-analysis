@@ -117,8 +117,9 @@
             scroll_distance: 3
             scroll_timeout: 50
             bar_width: 0
-            on_vbar: root.scrolling(self.vbar)
-
+            on_vbar: root.scroll_pos = self.vbar[0] * root.size[1]
+            on_scroll_y: root.scroll_size = self.vbar[1] * root.size[1]
+            
             GridLayout:
                 id: layout
                 size_hint: (1, None)
@@ -134,8 +135,8 @@
         ScrollBar:
             id: scrollbar
             size_hint: None,None
-            pos: root.pos[0] + root.size[0]-20, root.pos[1] + root.scroll_pos
             size: 20, root.scroll_size
+            pos: root.pos[0] + root.size[0]-20, root.pos[1] + root.scroll_pos
 
 <ScrollBar>:
     size_hint: 1,1

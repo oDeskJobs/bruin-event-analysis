@@ -53,6 +53,7 @@ class ListBox(ScrollView):
     layout = ObjectProperty(None)
     scroll_pos = NumericProperty(0)
     scroll_size = NumericProperty(200)
+    sz = NumericProperty(1)
 
     def __init__(self, **kwargs):
         super(ListBox, self).__init__(**kwargs)
@@ -72,15 +73,9 @@ class ListBox(ScrollView):
             itemsetup.item_info = self.itemname.text
         self.layout.add_widget(itemsetup)
         self.layout.bind(minimum_height=self.layout.setter('height'))
-
-    def scrolling(self, value):
-        view_size = self.size[1]
-        self.scroll_pos = value[0] * view_size
-        self.scroll_size = value[1] * view_size
-
+ 
     def move_scroll_y(self, touch_y):
-        grab_location = touch_y - self.scroll_pos - self.pos[1]
-        self.scroll.scroll_y = (touch_y - self.pos[1] + grab_location)/self.size[1]
+        self.scroll.scroll_y = (touch_y - self.pos[1])/self.size[1] 
 
 class ScrollBar(Widget):
     def __init__(self, **kwargs):
