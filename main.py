@@ -50,7 +50,7 @@ class MainView(Widget):
 
         # define a function that tells which labels should come before other labels. Ensures that "Transients"
         # always appears first, and then subsequent labels are sorted by alphabetical order
-        self.label_sort_func = lambda x: '0000000' if x.lower() == 'transients' else x
+        self.label_sort_func = lambda x: '0000000' if x.lower() == 'transients' else x.lower()
 
     def setup_visualizer(self):
         v = self.visualizer
@@ -104,9 +104,8 @@ class MainView(Widget):
         for s in self.behavior_files:
             if os.path.basename(s.source_file) in selected_basenames:
                 for field in s.get_valid_time_columns():
-
-                    data = [(p[0], 50) for p in s.get_xy_pairs(x=field)]
-                    self.series_controller.add_data(field, data)
+                    data = [p for p in s.get_xy_pairs(x=field)]
+                    self.series_controller.add_data(field, data, marker='plus', is_x_only = True)
 
     def _add_behavior_file(self, path):
         schema_file = os.path.splitext(path)[0] + '.schema'
