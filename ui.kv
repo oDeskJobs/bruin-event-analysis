@@ -111,40 +111,75 @@
 
 <VariablePairsBox>:
     layout: layout
-    ScrollView:
-        size_hint: (1, None)
-        size: root.size
-        do_scroll_x: False
-        scroll_distance: 3
-        scroll_timeout: 50
-
-        GridLayout:
-            id: layout
+    scroll: scroll
+    BoxLayout:
+        size_hint: (1,1)
+        orientation: 'horizontal'
+        ScrollView:
+            id: scroll
             size_hint: (1, None)
-            cols: 1
-            spacing: listbox_spacing
-            orientation: 'vertical'
-            spacing: header_height + listbox_spacing
-            Button:
-                text: 'Add Item'
-                on_press: root.get_variable_pair()
-                height: header_height
-                size_hint: (1,None)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            bar_width: 0
+            on_vbar: root.scroll_pos = self.vbar[0] * root.size[1]
+            on_scroll_y: root.scroll_size = self.vbar[1] * root.size[1]
+
+            GridLayout:
+                id: layout
+                size_hint: (1, None)
+                cols: 1
+                spacing: listbox_spacing
+                orientation: 'vertical'
+                spacing: header_height + listbox_spacing
+                Button:
+                    text: 'Add Item'
+                    on_press: root.get_variable_pair()
+                    height: header_height
+                    size_hint: (1,None)
+
+        ScrollBar:
+            size_hint: None,None
+            size: 20, root.scroll_size
+            pos: root.pos[0] + root.size[0]-20, root.pos[1] + root.scroll_pos
 
 <ListBox>:
     layout: layout
-    ScrollView:
-        size_hint: (1, None)
-        size: root.size
-        do_scroll_x: False
-        scroll_distance: 3
-        scroll_timeout: 50
-
-        GridLayout:
-            id: layout
+    scroll: scroll
+    BoxLayout:
+        size_hint: (1,1)
+        orientation: 'horizontal'
+        ScrollView:
+            id: scroll
             size_hint: (1, None)
-            cols: 1
-            spacing: header_height + listbox_spacing
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            bar_width: 0
+            on_vbar: root.scroll_pos = self.vbar[0] * root.size[1]
+            on_scroll_y: root.scroll_size = self.vbar[1] * root.size[1]
+
+            GridLayout:
+                id: layout
+                size_hint: (1, None)
+                cols: 1
+                spacing: header_height + listbox_spacing
+
+#                orientation: 'vertical'
+#                Button:
+#                    text: 'Add Item'
+#                    on_press: root.item_info()
+#                    height: header_height
+#                    width: root.size[0] - 20
+#                    size_hint: (None,None)
+
+        ScrollBar:
+            size_hint: None,None
+            size: 20, root.scroll_size
+            pos: root.pos[0] + root.size[0]-20, root.pos[1] + root.scroll_pos
+
 
 <VariablesList>:
     size_hint: (1, None)
@@ -155,15 +190,29 @@
 
 <VariableBox>:
     variable_list: variable_list
-    ScrollView:
-        size_hint: (1, None)
-        size: root.size
-        do_scroll_x: False
-        scroll_distance: 3
-        scroll_timeout: 50
-        VariablesList:
-            id: variable_list
-            preserve_button_state: True
+    scroll: scroll
+    BoxLayout:
+        size_hint: (1,1)
+        orientation: 'horizontal'
+        ScrollView:
+            id: scroll
+            size_hint: (1, None)
+            size: root.size
+            do_scroll_x: False
+            scroll_distance: 3
+            scroll_timeout: 50
+            bar_width: 0
+            on_vbar: root.scroll_pos = self.vbar[0] * root.size[1]
+            on_scroll_y: root.scroll_size = self.vbar[1] * root.size[1]
+
+            VariablesList:
+                id: variable_list
+                preserve_button_state: True
+
+        ScrollBar:
+            size_hint: None,None
+            size: 20, root.scroll_size
+            pos: root.pos[0] + root.size[0]-20, root.pos[1] + root.scroll_pos
 
 <VariablePair>:
     toggle_button: toggle_button
@@ -180,6 +229,14 @@
         text: 'No Variables Chosen'
         size_hint: (1., None)
 
+<ScrollBar>:
+    size_hint: 1,1
+    canvas:
+        Color:
+            rgb: .1,.1,.2
+        Rectangle:
+            pos: self.pos
+            size: self.size
 
 <VariablePairer>:
     variable_panel_1: variable_panel_1

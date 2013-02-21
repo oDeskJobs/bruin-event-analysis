@@ -225,6 +225,8 @@ class VariablesList(GridLayout):
 class VariablePairsBox(BoxLayout):
     layout = ObjectProperty(None)
     variable_pairs = ListProperty([])
+    scroll_pos = NumericProperty(0)
+    scroll_size = NumericProperty(200)
 
     def __init__(self, **kwargs):
         super(VariablePairsBox, self).__init__(**kwargs)
@@ -251,10 +253,15 @@ class VariablePairsBox(BoxLayout):
 
         self.layout.add_widget(variable_pair)
         self.variable_pairs.append(variable_pair)
+
+    def move_scroll_y(self, touch_y):
+        self.scroll.scroll_y = (touch_y - self.pos[1])/self.size[1]
         
 class ListBox(BoxLayout):
     layout = ObjectProperty(None)
     contents = ListProperty([])
+    scroll_pos = NumericProperty(0)
+    scroll_size = NumericProperty(200)
 
     def __init__(self, **kwargs):
         super(ListBox, self).__init__(**kwargs)
@@ -269,11 +276,37 @@ class ListBox(BoxLayout):
             self.layout.add_widget(ListItem(item_info = s))
         self.layout.bind(minimum_height=self.layout.setter('height'))
 
+    def move_scroll_y(self, touch_y):
+        self.scroll.scroll_y = (touch_y - self.pos[1])/self.size[1]
+
+class ScrollBar(Widget):
+    def __init__(self, **kwargs):
+        super(ScrollBar, self).__init__(**kwargs)
+    
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            touch.grab(self)
+            return True
+
+    def on_touch_move(self, touch):
+        if touch.grab_current == self:
+            self.parent.parent.move_scroll_y(touch.pos[1])
+            return True
+
+    def on_touch_up(self, touch):
+        if touch.grab_current == self:
+            return True
+
 class VariableBox(BoxLayout):
     variable_list = ObjectProperty(None)
+    scroll_pos = NumericProperty(0)
+    scroll_size = NumericProperty(200)
 
     def __init__(self, **kwargs):
         super(VariableBox, self).__init__(**kwargs)
+
+    def move_scroll_y(self, touch_y):
+        self.scroll.scroll_y = (touch_y - self.pos[1])/self.size[1]
 
 class VariablePair(BoxLayout):
     variable_one = StringProperty("Default 1")
