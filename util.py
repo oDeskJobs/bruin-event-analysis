@@ -91,6 +91,9 @@ class SeriesController(Widget):
         self.series_dict[label].disable()
         if label in self.x_only_fields: self.reassign_y_values_to_x_only_series()
 
+    def get_data(self, label):
+        return self.series_dict[label].data
+
     def fit_to_all_series(self):
         all_extents = [None, None, None, None]
         for k, v in self.series_dict.iteritems():
@@ -107,8 +110,9 @@ class SeriesController(Widget):
             self.visualizer.viewport = [all_extents[0] - 0.1*x_range, all_extents[1] - 0.1*y_range,
                                         all_extents[2] + 0.1*x_range, all_extents[3] + 0.1*y_range]
 
+    def add_highlights(self, label, regions):
+        self.series_dict[label].highlight_regions = regions
 
- 
 class ColorPalette(object):
     colors = [
     (.68, .42, .73),

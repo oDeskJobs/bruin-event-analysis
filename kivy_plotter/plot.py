@@ -15,17 +15,23 @@ def drange(start, stop, step):
 
 class Series(Widget):
     fill_color = ListProperty([1,1,1])
+    highlight_color = ListProperty([1,1,0])
     enabled = BooleanProperty(False)
     data = ListProperty([])
     tick_width = NumericProperty(5)
     tick_height = NumericProperty(32)
     marker = StringProperty('tick')
+    highlight_regions = ListProperty([])
 
     def __init__(self, plot, **kwargs):
         kwargs['size_hint'] = (None, None)
         self.plot = plot
         super(Series, self).__init__(**kwargs)
         
+        self.highlights = InstructionGroup()
+        self.highlights_translate = Translate()
+        self.canvas.add(self.highlights)
+
         self.series = InstructionGroup()
         self.series_translate = Translate()
         self.canvas.add(self.series)
@@ -62,6 +68,9 @@ class Series(Widget):
         self.data_extents = (min(self.data_x), min(self.data_y), max(self.data_x), max(self.data_y))
         self.draw()
 
+    def on_highlight_regions(self, instance, value):
+        print "redrawing with regions", self.highlight_regions
+        self.draw()
 
     def draw(self, *largs):
         self.series.clear()
@@ -70,7 +79,6 @@ class Series(Widget):
         self.series.add(self.series_translate)
 
         tick_half_height_px = .5*self.tick_height / self.plot.vp_height_convert
-        print "vp:", self.plot.viewport
 
         for t in self.data:
             bar_x = int(t[0])
@@ -91,6 +99,27 @@ class Series(Widget):
 
         self.series.add(PopMatrix())
 
+        # now draw the highlights, if there are any
+        self.highlights.clear()
+        self.highlights.add(PushMatrix())
+        self.highlights.add(Color(*self.highlight_color, mode='rgb'))
+        self.highlights.add(self.highlights_translate)
+
+        highlight_height = int(1.2 * self.tick_height)
+
+        for highlight_range in self.highlight_regions:
+            start, end = highlight_range
+            assert self.data_extents[1] == self.data_extents[3], "Highlights only work with x_only data."
+            y_center = self.data_extents[1]
+            begin_point = [int(v) for v in self.plot.to_display_point(start, y_center)]
+            end_point = [int(v) for v in self.plot.to_display_point(end, y_center)]
+
+            self.highlights.add(Rectangle(pos = (begin_point[0], begin_point[1] - highlight_height/2) , size = (end_point[0] - begin_point[0], highlight_height)))
+
+        self.highlights.add(PopMatrix())
+
+
+
     def _set_pos(self, instance, value):
         print 'setting pos', value
         self.pos = value
@@ -101,6 +130,7 @@ class Series(Widget):
 
     def on_pos(self, instance, value):
         self.series_translate.xy = self.x, self.y
+        self.highlights_translate.xy = self.x, self.y
 
     def on_size(self, instance, value):
         self.draw()

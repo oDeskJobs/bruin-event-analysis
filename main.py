@@ -18,11 +18,32 @@ import os
 
 Builder.load_file('ui.kv')
 
+
+def get_bout_regions_from_xy_data(data, bout_threshold = 1.):
+    sorted_data = sorted(data, key=lambda x: x[0])
+    in_bout = False
+    current_bout_start = 0
+    bouts = []
+    x1 = sorted_data[0]
+    for x2 in sorted_data[1:]:
+        within_threshold = (x2[0]-x1[0] <= bout_threshold)
+        if not in_bout and within_threshold:
+            in_bout = True
+            current_bout_start = x1[0]
+        elif in_bout and not within_threshold:
+            bouts.append((current_bout_start, x2[0]))
+            in_bout = False
+        x1 = x2
+    return bouts
+
+
+
+
 class MainView(Widget):
     visualizer = ObjectProperty(None)
     transient_box = ObjectProperty(None)
     behavior_box = ObjectProperty(None)
-    behavior_box = ObjectProperty(None)
+    bout_id_box = ObjectProperty(None)
     legend_box = ObjectProperty(None)
 
     behavior_files = ListProperty(None)
@@ -37,17 +58,20 @@ class MainView(Widget):
         self.behavior_files = []
         self.setup_visualizer()
         self.series_controller = SeriesController(self.visualizer)
-        self.series_controller.bind(all_variables_list = self.all_variables_changed)
+        self.series_controller.bind(all_variables_list = self._all_variables_changed)
 
         self.transient_button_list = self.transient_box.listbox.variable_list
-        self.transient_button_list.bind(current_toggled=self.transient_select_changed)
+        self.transient_button_list.bind(current_toggled=self._transient_select_changed)
 
         self.behavior_button_list = self.behavior_box.listbox.variable_list
-        self.behavior_button_list.bind(current_toggled=self.behavior_select_changed)
+        self.behavior_button_list.bind(current_toggled=self._behavior_select_changed)
 
         self.legend_button_list = self.legend_box.listbox.variable_list
-        self.legend_button_list.bind(current_toggled=self.visible_series_changed)
+        self.legend_button_list.bind(current_toggled=self._visible_series_changed)
 
+        self.bout_id_button_list = self.bout_id_box.listbox.variable_list
+        self.bout_id_button_list.bind(current_toggled=self._bout_id_params_changed)
+        self.bout_id_box.bind(bout_threshold=self._bout_id_params_changed)
         # define a function that tells which labels should come before other labels. Ensures that "Transients"
         # always appears first, and then subsequent labels are sorted by alphabetical order
         self.label_sort_func = lambda x: '0000000' if x.lower() == 'transients' else x.lower()
@@ -89,7 +113,7 @@ class MainView(Widget):
     def on_behavior_files(self, instance, value):
         self.behavior_button_list.variable_list = [os.path.basename(t.source_file) for t in self.behavior_files]
 
-    def transient_select_changed(self, instance, value):
+    def _transient_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
         self.series_controller.clear(label = 'Transients')
         for t in self.transient_files:
@@ -97,7 +121,7 @@ class MainView(Widget):
                 data = [p for p in t.get_xy_pairs()]
                 self.series_controller.add_data('Transients', data)
 
-    def behavior_select_changed(self, instance, value):
+    def _behavior_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
         
         self.series_controller.clear(except_label = 'Transients')
@@ -142,14 +166,43 @@ class MainView(Widget):
 
 
 
-    def all_variables_changed(self, instance, value):
+    def _all_variables_changed(self, instance, value):
         # print value
         self.bout_id_box.listbox.variable_list.variable_list = sorted(value, key=self.label_sort_func)
         self.legend_box.listbox.variable_list.variable_list = sorted(value, key=self.label_sort_func)
 
-    def visible_series_changed(self, instance, value):
+    def _visible_series_changed(self, instance, value):
         selected_series = [v.text for v in value]
         self.series_controller.update_visible_series(selected_series)
+
+    def _bout_id_params_changed(self, *largs):
+        # put a little lag on calculate_bouts so that user can fiddle with slider without freezing things up.
+        try:
+            Clock.unschedule(self.calculate_bouts)
+        except:
+            print "couldn't unschedule"
+        Clock.schedule_once(self.calculate_bouts, .2)
+
+
+    def calculate_bouts(self, *largs):
+
+        print "calculating bouts."
+        print "bout threshold:", self.bout_id_box.bout_threshold
+        print "looking at series:", self.bout_id_box.listbox.variable_list.current_toggled
+        for t in self.bout_id_box.listbox.variable_list.current_toggled:
+            label = t.text
+            data = self.series_controller.get_data(label)
+            bouts = get_bout_regions_from_xy_data(data, bout_threshold = self.bout_id_box.bout_threshold)
+            print "Identified bouts for series %s:" % (label,), bouts
+            self.series_controller.add_highlights(t.text, bouts)
+
+
+class BoutIDBox(BoxLayout):
+    bout_threshold = NumericProperty(1.)
+
+    def set_threshold(self, value):
+        self.bout_threshold = value
+        print value
 
 class VariablePairer(BoxLayout):
     current_pick_1 = ObjectProperty(None)

@@ -83,9 +83,8 @@
             BoxLayout:
                 orientation: 'horizontal'
                 spacing: grid_spacing
-                BoxWithHeaderNoAdd:
+                BoutIDBox:
                     id: bout_id_box
-                    title: "Bout Identification"
                     size_hint: (.33, 1)
                 BoxWithHeader3:
                     title: "Transition Identification"
@@ -366,6 +365,7 @@
     listbox: listbox
     orientation: 'vertical'
     spacing: grid_spacing
+    padding: grid_spacing
     size_hint: ctx.size_hint
     canvas:
         Color:
@@ -396,6 +396,7 @@
     listbox: listbox
     orientation: 'vertical'
     spacing: grid_spacing
+    padding: grid_spacing
     size_hint: ctx.size_hint
     size: ctx.size if hasattr(ctx, 'size') else (100,100)
     canvas:
@@ -406,6 +407,30 @@
             size: self.size
     Header:
         text: ctx.title
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+
+<BoutIDBox>:
+    listbox: listbox
+    orientation: 'vertical'
+    spacing: grid_spacing
+    padding: grid_spacing
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: "Bout Identification"
+    Slider:
+        size_hint: (1, None)
+        height: 32
+        min: 0
+        max: 10
+        value: 1.
+        on_value: root.set_threshold(self.value)
     VariableBox:
         id: listbox
         size_hint: (1,1)
