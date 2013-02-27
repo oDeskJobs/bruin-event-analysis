@@ -5,6 +5,7 @@ from kivy.graphics import Line, Color, PushMatrix, PopMatrix, Translate, Instruc
 from kivy.uix.scatter import Scatter
 from kivy.lang import Builder
 from kivy.uix.label import Label
+from math import atan2, sin, cos
 
 def drange(start, stop, step):
     r = start
@@ -12,20 +13,123 @@ def drange(start, stop, step):
         yield r
         r += step
 
+class Arrow(InstructionGroup):
+    def __init__(self, points, line_width = 1, head_length = 8, **kwargs):
+        super(Arrow, self).__init__(**kwargs)
+        self.add(Line(points=points, width=line_width))
+        for p in self.get_head_line_points(points, head_length):
+            self.add(Line(points=p, width=line_width))
+
+    def get_head_line_points(self, points, head_length):
+        xd = points[0] - points[2]
+        yd = points[1] - points[3]
+        t = atan2(yd, xd)
+        # return the angle between point2 and point1 with a variance of 30 degrees on each side
+        head_angles = (t-0.5, t+0.5)
+        for th in head_angles:
+            yield [points[2], points[3], points[2] + head_length * cos(th), points[3] + head_length * sin(th)]
+
+class ArrowList(Widget):
+    begin_series = ObjectProperty(None)
+    end_series = ObjectProperty(None)
+    x_ranges = ListProperty(None)
+    arrow_color = ListProperty([1,1,1])
+    enabled = BooleanProperty(False)
+
+    def __init__(self, begin_series, end_series, x_ranges, **kwargs):
+        self.begin_series = begin_series
+        self.end_series = end_series
+        self.x_ranges = x_ranges
+        assert begin_series.plot == end_series.plot
+        self.plot = begin_series.plot
+
+        super(ArrowList, self).__init__(**kwargs)
+        
+        self.arrows = InstructionGroup()
+        self.arrows_translate = Translate()
+        self.canvas.add(self.arrows)
+
+        self.pos = self.plot.pos
+        self.size = self.plot.size
+        self.plot.bind(size = self._set_size)
+        self.plot.bind(pos = self._set_pos)
+        self.plot.bind(viewport = self.draw)
+
+        self.begin_series.bind(data = self.draw)
+        self.end_series.bind(data = self.draw)
+
+        self.bind(x_ranges = self.draw)
+
+    def enable(self):
+        if self.enabled:
+            return
+        self.enabled = True
+        self.plot.add_widget(self)
+
+    def disable(self):
+        if not self.enabled:
+            return
+        self.enabled = False
+        self.plot.remove_widget(self)
+
+    def draw(self, *largs):
+        self.arrows.clear()
+        self.arrows.add(PushMatrix())
+        self.arrows.add(Color(*self.arrow_color, mode='rgb'))
+        self.arrows.add(self.arrows_translate)
+
+        for x_range in self.x_ranges:
+            x_start, x_end = x_range
+            assert self.begin_series.data_extents[1] == self.begin_series.data_extents[3] and \
+                        self.end_series.data_extents[1] == self.end_series.data_extents[3], "arrows only work with x_only data."
+            y_start = self.begin_series.data_extents[1]
+            y_end = self.end_series.data_extents[1]
+
+            x1, y1 = [int(v) for v in self.plot.to_display_point(x_start, y_start)]
+            x2, y2 = [int(v) for v in self.plot.to_display_point(x_end, y_end)]
+
+            self.arrows.add(Arrow([x1, y1, x2, y2], line_width = 3, head_length = 10))
+            print "success"
+
+        self.arrows.add(PopMatrix())
+
+    def _set_pos(self, instance, value):
+        print 'setting pos', value
+        self.pos = value
+
+    def _set_size(self, instance, value):
+        print 'setting size', value
+        self.size = value
+
+    def on_pos(self, instance, value):
+        self.arrows_translate.xy = self.x, self.y
+
+    def on_size(self, instance, value):
+        self.draw()
+
+
+
+
 
 class Series(Widget):
     fill_color = ListProperty([1,1,1])
+    highlight_color = ListProperty([1,1,0])
     enabled = BooleanProperty(False)
     data = ListProperty([])
     tick_width = NumericProperty(5)
     tick_height = NumericProperty(32)
     marker = StringProperty('tick')
+    highlight_regions = ListProperty([])
 
     def __init__(self, plot, **kwargs):
         kwargs['size_hint'] = (None, None)
         self.plot = plot
         super(Series, self).__init__(**kwargs)
         
+        self.highlights = InstructionGroup()
+        self.highlights_translate = Translate()
+        self.canvas.add(self.highlights)
+
         self.series = InstructionGroup()
         self.series_translate = Translate()
         self.canvas.add(self.series)
@@ -62,6 +166,9 @@ class Series(Widget):
         self.data_extents = (min(self.data_x), min(self.data_y), max(self.data_x), max(self.data_y))
         self.draw()
 
+    def on_highlight_regions(self, instance, value):
+        print "redrawing with regions", self.highlight_regions
+        self.draw()
 
     def draw(self, *largs):
         self.series.clear()
@@ -70,7 +177,6 @@ class Series(Widget):
         self.series.add(self.series_translate)
 
         tick_half_height_px = .5*self.tick_height / self.plot.vp_height_convert
-        print "vp:", self.plot.viewport
 
         for t in self.data:
             bar_x = int(t[0])
@@ -91,6 +197,27 @@ class Series(Widget):
 
         self.series.add(PopMatrix())
 
+        # now draw the highlights, if there are any
+        self.highlights.clear()
+        self.highlights.add(PushMatrix())
+        self.highlights.add(Color(*self.highlight_color, mode='rgb'))
+        self.highlights.add(self.highlights_translate)
+
+        highlight_height = int(1.2 * self.tick_height)
+
+        for highlight_range in self.highlight_regions:
+            start, end = highlight_range
+            assert self.data_extents[1] == self.data_extents[3], "Highlights only work with x_only data."
+            y_center = self.data_extents[1]
+            begin_point = [int(v) for v in self.plot.to_display_point(start, y_center)]
+            end_point = [int(v) for v in self.plot.to_display_point(end, y_center)]
+
+            self.highlights.add(Rectangle(pos = (begin_point[0], begin_point[1] - highlight_height/2) , size = (end_point[0] - begin_point[0], highlight_height)))
+
+        self.highlights.add(PopMatrix())
+
+
+
     def _set_pos(self, instance, value):
         print 'setting pos', value
         self.pos = value
@@ -101,6 +228,7 @@ class Series(Widget):
 
     def on_pos(self, instance, value):
         self.series_translate.xy = self.x, self.y
+        self.highlights_translate.xy = self.x, self.y
 
     def on_size(self, instance, value):
         self.draw()
