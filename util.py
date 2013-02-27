@@ -1,5 +1,5 @@
-from kivy_plotter.plot import Series
-from kivy.properties import ListProperty
+from kivy_plotter.plot import Series, ArrowList
+from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
 
 
@@ -11,6 +11,7 @@ class SeriesController(Widget):
     tick_width = 5
     all_variables_list = ListProperty([])
     x_only_fields = []
+    arrows = DictProperty({})
 
     # determines where on the y_axis series show up if they don't have y data
     x_only_field_y_hints = [[],
@@ -112,6 +113,26 @@ class SeriesController(Widget):
 
     def add_highlights(self, label, regions):
         self.series_dict[label].highlight_regions = regions
+
+    def add_arrows(self, start_label, end_label, x_ranges):
+        if (start_label, end_label) not in self.arrows:
+            self.arrows[(start_label, end_label)] = ArrowList(self.series_dict[start_label], self.series_dict[end_label], x_ranges)        
+        else:
+            self.arrows[(start_label, end_label)].x_ranges = x_ranges
+
+        self.arrows[(start_label, end_label)].enable()
+
+    def clear_arrows(self):
+        for _, v in self.arrows.iteritems():
+            v.disable()
+
+
+    # def enable_arrows(self, start_label, end_label):
+    #     self.arrows[(start_label, end_label)].enable()
+
+    # def disable_arrows(self, start_label, end_label):
+    #     self.arrows[(start_label, end_label)].disable()    
+
 
 class ColorPalette(object):
     colors = [
