@@ -1,4 +1,4 @@
-#:kivy 1.5.1
+#:kivy 1.4.1
 
 #:set bg_color (.5, .5, .5)
 #:set box_color (.75, .75, .75)
@@ -17,6 +17,8 @@
     transition_box: transition_box
     event_box: event_box
     legend_box: legend_box
+    session_box: session_box
+    subject_box: subject_box
 
     canvas:
         Color:
@@ -33,17 +35,19 @@
 
         # layout containing the five list boxes on the top row
         BoxLayout:
-            size_hint: (1, .33)
+            size_hint: (1, .22)
             orientation: 'horizontal'
             spacing: grid_spacing
             BoxWithHeader:
                 title: "Sessions"
+                id: session_box
                 size_hint: (.2,1)
-                add_button_callback: None
+                add_button_callback: root.add_session
             BoxWithHeader:
                 title: "Subjects"
+                id: subject_box
                 size_hint: (.2, 1)
-                add_button_callback: None
+                add_button_callback: root.add_subject
             BoxLayout:
                 orientation: 'vertical'
                 spacing: grid_spacing
@@ -98,7 +102,7 @@
 
         # layout containing the visualization panel
         BoxLayout:
-            size_hint: (1, .33)
+            size_hint: (1, .45)
             orientation: 'horizontal'
             spacing: grid_spacing
             Plot:
@@ -426,13 +430,21 @@
             size: self.size
     Header:
         text: "Bout Identification"
-    Slider:
+    BoxLayout:
+        orientation: 'horizontal'
         size_hint: (1, None)
         height: 32
-        min: 0
-        max: 10
-        value: 1.
-        on_value: root.set_threshold(self.value)
+        Label:
+            size_hint: (.35, 1)
+            text: "Threshold: " + str(round(sl1.value, 1))+ "s"
+        Slider:
+            size_hint: (.65, 1)
+            id: sl1
+            min: 0
+            max: 20
+            value: 1.
+            on_value: root.set_threshold(self.value)
+
     VariableBox:
         id: listbox
         size_hint: (1,1)
@@ -451,13 +463,20 @@
             size: self.size
     Header:
         text: "Transition Identification"
-    Slider:
+    BoxLayout:
+        orientation: 'horizontal'
         size_hint: (1, None)
         height: 32
-        min: 0
-        max: 10
-        value: 1.
-        on_value: root.set_threshold(self.value)
+        Label:
+            size_hint: (.35, 1)
+            text: "Threshold: " + str(round(sl2.value, 1))+ "s"
+        Slider:
+            size_hint: (.65, 1)
+            id: sl2
+            min: 0
+            max: 10
+            value: 1.
+            on_value: root.set_threshold(self.value)
     VariableBox:
         id: listbox
         size_hint: (1,1)
