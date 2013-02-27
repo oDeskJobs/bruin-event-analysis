@@ -1,7 +1,7 @@
 #:kivy 1.5.1
 
-#:set bg_color (.8, .8, .8)
-#:set box_color (.7, .7, .7)
+#:set bg_color (.5, .5, .5)
+#:set box_color (.75, .75, .75)
 #:set txt_color (0, 0, 0, 1)
 #:set header_height 24
 #:set grid_spacing 7
@@ -14,6 +14,8 @@
     transient_box: transient_box
     behavior_box: behavior_box
     bout_id_box: bout_id_box
+    transition_box: transition_box
+    event_box: event_box
     legend_box: legend_box
 
     canvas:
@@ -83,16 +85,15 @@
             BoxLayout:
                 orientation: 'horizontal'
                 spacing: grid_spacing
-                BoxWithHeaderNoAdd:
+                BoutIDBox:
                     id: bout_id_box
-                    title: "Bout Identification"
                     size_hint: (.33, 1)
-                BoxWithHeader3:
-                    title: "Transition Identification"
-                    size_hint: (.33, 1)
-                BoxWithHeader3:
-                    title: "Event Matching"
-                    size_hint: (.33, 1)
+                TransitionIDBox:
+                    id: transition_box
+                    size_hint: (.33,1)
+                EventMatchingBox:
+                    id: event_box
+                    size_hint: (.33,1)
 
 
         # layout containing the visualization panel
@@ -415,6 +416,7 @@
     listbox: listbox
     orientation: 'vertical'
     spacing: grid_spacing
+    padding: grid_spacing
     size_hint: ctx.size_hint
     canvas:
         Color:
@@ -445,6 +447,7 @@
     listbox: listbox
     orientation: 'vertical'
     spacing: grid_spacing
+    padding: grid_spacing
     size_hint: ctx.size_hint
     size: ctx.size if hasattr(ctx, 'size') else (100,100)
     canvas:
@@ -459,6 +462,104 @@
         id: listbox
         size_hint: (1,1)
 
+<BoutIDBox>:
+    listbox: listbox
+    orientation: 'vertical'
+    spacing: grid_spacing
+    padding: grid_spacing
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: "Bout Identification"
+    Slider:
+        size_hint: (1, None)
+        height: 32
+        min: 0
+        max: 10
+        value: 1.
+        on_value: root.set_threshold(self.value)
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+
+
+<TransitionIDBox>:
+    listbox: listbox
+    orientation: 'vertical'
+    spacing: grid_spacing
+    padding: grid_spacing
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: "Transition Identification"
+    Slider:
+        size_hint: (1, None)
+        height: 32
+        min: 0
+        max: 10
+        value: 1.
+        on_value: root.set_threshold(self.value)
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.add_variable_pair()
+
+<EventMatchingBox>:
+    listbox: listbox
+    orientation: 'vertical'
+    spacing: grid_spacing
+    padding: grid_spacing
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: "Event Matching"
+    Slider:
+        size_hint: (1, None)
+        height: 32
+        min: 0
+        max: 10
+        value: 1.
+        on_value: root.set_threshold(self.value)
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.add_variable_pair()
 
 [BoxWithHeader2@BoxLayout]:
     listbox: listbox
