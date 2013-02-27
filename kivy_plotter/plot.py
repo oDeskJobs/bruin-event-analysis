@@ -113,7 +113,7 @@ class ArrowList(Widget):
 
 class Series(Widget):
     fill_color = ListProperty([1,1,1])
-    highlight_color = ListProperty([1,1,0])
+    highlight_color = ListProperty([0.949019608,0.941176471,0.741176471, .75])
     enabled = BooleanProperty(False)
     data = ListProperty([])
     tick_width = NumericProperty(5)
