@@ -126,6 +126,9 @@ class SeriesController(Widget):
         for _, v in self.arrows.iteritems():
             v.disable()
 
+    def clear_highlights(self):
+        for _, v in self.series_dict.iteritems():
+            v.highlight_regions = []
 
     # def enable_arrows(self, start_label, end_label):
     #     self.arrows[(start_label, end_label)].enable()

@@ -72,11 +72,13 @@ class MainView(Widget):
     transition_box = ObjectProperty(None)
     event_box = ObjectProperty(None)
     legend_box = ObjectProperty(None)
+    session_box = ObjectProperty(None)
+    subject_box = ObjectProperty(None)
 
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
 
-    legend_width = NumericProperty(200)
+    legend_width = NumericProperty(300)
 
 
     def __init__(self, **kwargs):
@@ -103,6 +105,12 @@ class MainView(Widget):
         self.transition_button_list = self.transition_box.listbox.variable_list
         self.transition_button_list.bind(current_toggled=self._transition_params_changed)
         self.transition_box.bind(transition_threshold=self._transition_params_changed)
+
+
+        #debug
+        self.session_box.listbox.variable_list.variable_list = ['2/26/13']
+        self.subject_box.listbox.variable_list.variable_list = ['Subject 1']
+        #/debug
 
         # define a function that tells which labels should come before other labels. Ensures that "Transients"
         # always appears first, and then subsequent labels are sorted by alphabetical order
@@ -225,6 +233,7 @@ class MainView(Widget):
 
 
     def calculate_bouts(self, *largs):
+        self.series_controller.clear_highlights()
         for t in self.bout_id_box.listbox.variable_list.current_toggled:
             label = t.text
             data = self.series_controller.get_data(label)
@@ -243,7 +252,11 @@ class MainView(Widget):
             self.series_controller.add_arrows(label1, label2, transitions)
 
 
+    def add_subject(self):
+        pass
 
+    def add_session(self):
+        pass
 
 class BoutIDBox(BoxLayout):
     bout_threshold = NumericProperty(1.)

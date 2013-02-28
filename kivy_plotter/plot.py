@@ -33,7 +33,7 @@ class ArrowList(Widget):
     begin_series = ObjectProperty(None)
     end_series = ObjectProperty(None)
     x_ranges = ListProperty(None)
-    arrow_color = ListProperty([1,1,1])
+    arrow_color = ListProperty([.8, .8 ,.8, .75])
     enabled = BooleanProperty(False)
 
     def __init__(self, begin_series, end_series, x_ranges, **kwargs):
@@ -113,7 +113,7 @@ class ArrowList(Widget):
 
 class Series(Widget):
     fill_color = ListProperty([1,1,1])
-    highlight_color = ListProperty([0.949019608,0.941176471,0.741176471, .75])
+    highlight_color = ListProperty([0.949019608,0.941176471,0.741176471, .55])
     enabled = BooleanProperty(False)
     data = ListProperty([])
     tick_width = NumericProperty(5)
@@ -128,11 +128,12 @@ class Series(Widget):
         
         self.highlights = InstructionGroup()
         self.highlights_translate = Translate()
-        self.canvas.add(self.highlights)
+        
 
         self.series = InstructionGroup()
         self.series_translate = Translate()
         self.canvas.add(self.series)
+        self.canvas.add(self.highlights)
 
         self.pos = self.plot.pos
         self.size = self.plot.size
