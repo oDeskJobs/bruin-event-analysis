@@ -140,7 +140,6 @@
                 Button:
                     text: 'Add Item'
                     on_press: root.get_variable_pair()
-                    on_release: root.scroll_size = root.size[1] / (root.scroll._viewport_size[1] + 26) * root.size[1] if root.scroll._viewport_size[1] > root.size[1] else root.size[1]
                     height: header_height
                     size_hint: (1,None)
 
@@ -164,7 +163,6 @@
             scroll_timeout: 50
             bar_width: 0
             on_vbar: root.scroll_pos = self.vbar[0] * root.size[1]
-            on_scroll_y: root.scroll_size = self.vbar[1] * root.size[1]
 
             GridLayout:
                 id: layout
@@ -200,7 +198,6 @@
             scroll_timeout: 50
             bar_width: 0
             on_vbar: root.scroll_pos = self.vbar[0] * root.size[1]
-            on_scroll_y: root.scroll_size = self.vbar[1] * root.size[1]
 
             VariablesList:
                 id: variable_list
@@ -208,7 +205,7 @@
 
         ScrollBar:
             size_hint: None,None
-            size: 20, root.scroll_size
+            size: 20, root.scroll_size * root.size[1]
             pos: root.pos[0] + root.size[0]-20, root.pos[1] + root.scroll_pos
 
 <VariablePair>:
@@ -445,7 +442,9 @@
             background_down: 'assets/plus32-purple.png'
             size_hint: (None, None) 
             size: (32, 32)
-            on_release: ctx.add_button_callback()
+            on_press: ctx.add_button_callback()
+            on_release: listbox.scroll_size = listbox.scroll.vbar[1]
+
 
 [BoxWithHeaderNoAdd@BoxLayout]:
     listbox: listbox
@@ -497,6 +496,7 @@
     VariableBox:
         id: listbox
         size_hint: (1,1)
+        on_scroll_pos: self.scroll_size = self.scroll.vbar[1]
 
 
 <TransitionIDBox>:
@@ -541,7 +541,8 @@
             background_down: 'assets/plus32-purple.png'
             size_hint: (None, None) 
             size: (32, 32)
-            on_release: root.add_variable_pair()
+            on_press: root.add_variable_pair()
+            on_release: listbox.scroll_size = listbox.size[1] / (listbox.scroll._viewport_size[1] + 30) if listbox.scroll._viewport_size[1] + 30 > listbox.size[1] else 1
 
 <EventMatchingBox>:
     listbox: listbox
@@ -578,7 +579,8 @@
             background_down: 'assets/plus32-purple.png'
             size_hint: (None, None) 
             size: (32, 32)
-            on_release: root.add_variable_pair()
+            on_press: root.add_variable_pair()
+            on_release: listbox.scroll_size = listbox.size[1] / (listbox.scroll._viewport_size[1] + 30) if listbox.scroll._viewport_size[1] + 30 > listbox.size[1] else 1
 
 [BoxWithHeader2@BoxLayout]:
     listbox: listbox

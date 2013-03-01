@@ -324,7 +324,7 @@ class VariablePairer(BoxLayout):
 
 class VariablesList(GridLayout):
     variable_list = ListProperty([])
-    current_buttons = ListProperty([])
+    current_buttons= ListProperty([])
     current_toggled = ListProperty([])
     current_radio_button = ObjectProperty(None)
     preserve_button_state = BooleanProperty(False)
@@ -389,12 +389,11 @@ class VariablesList(GridLayout):
 class VariablePairsBox(BoxLayout):
     layout = ObjectProperty(None)
     variable_pairs = ListProperty([])
-    scroll_pos = NumericProperty(100)
-    scroll_size = NumericProperty(100)
+    scroll_pos = NumericProperty(0)
+    scroll_size = NumericProperty(1)
 
     def __init__(self, **kwargs):
         super(VariablePairsBox, self).__init__(**kwargs)
-        self.scroll_size = self.size[1]
 
     def get_variable_pair(self):
         self.variable_pairer =VariablePairer()
@@ -426,11 +425,10 @@ class ListBox(BoxLayout):
     layout = ObjectProperty(None)
     contents = ListProperty([])
     scroll_pos = NumericProperty(0)
-    scroll_size = NumericProperty(200)
+    scroll_size = NumericProperty(1)
 
     def __init__(self, **kwargs):
         super(ListBox, self).__init__(**kwargs)
-        self.scroll_size = self.size[1]
         Clock.schedule_interval(self.blah, 2.)
 
     def blah(self, dt):
@@ -466,11 +464,10 @@ class ScrollBar(Widget):
 class VariableBox(BoxLayout):
     variable_list = ObjectProperty(None)
     scroll_pos = NumericProperty(0)
-    scroll_size = NumericProperty(200)
+    scroll_size = NumericProperty(1)
 
     def __init__(self, **kwargs):
         super(VariableBox, self).__init__(**kwargs)
-        self.scroll_size = self.size[1]
 
     def move_scroll_y(self, touch_y):
         self.scroll.scroll_y = (touch_y - self.pos[1])/self.size[1]
