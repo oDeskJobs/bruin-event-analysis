@@ -11,6 +11,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.clock import Clock
 
+from double_slider import DoubleSlider
 from data_models import TransientDataFile, BehaviorDataFile
 from util import SeriesController
 
@@ -33,9 +34,7 @@ def get_bout_regions_from_xy_data(data, bout_threshold = 1.):
         elif in_bout and not within_threshold:
             bouts.append((current_bout_start, x1[0]))
             in_bout = False
-        # print "before", x1, x2
         x1 = x2
-        # print "after", x1, x2
 
     return bouts
 
@@ -106,6 +105,10 @@ class MainView(Widget):
         self.transition_button_list.bind(current_toggled=self._transition_params_changed)
         self.transition_box.bind(transition_threshold=self._transition_params_changed)
 
+        self.event_button_list = self.event_box.listbox.variable_list
+        self.event_button_list.bind(current_toggled=self._event_params_changed)
+        self.event_box.bind(before_threshold=self._event_params_changed)
+        self.event_box.bind(after_threshold=self._event_params_changed)
 
         #debug
         self.session_box.listbox.variable_list.variable_list = ['2/26/13']
@@ -204,10 +207,9 @@ class MainView(Widget):
         self.behavior_files.append(t)
 
 
-
-
     def _all_variables_changed(self, instance, value):
         self.bout_id_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients"]
+        self.event_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients"]
         self.legend_box.listbox.variable_list.variable_list = sorted(value, key=self.label_sort_func)
         self.transition_box.available_variables = sorted(value, key=self.label_sort_func)
 
@@ -231,6 +233,13 @@ class MainView(Widget):
             print "couldn't unschedule"
         Clock.schedule_once(self.calculate_transitions, .2)
 
+    def _event_params_changed(self, *largs):
+        # put a little lag on calculate_event_matches so that user can fiddle with slider without freezing things up.
+        try:
+            Clock.unschedule(self.calculate_event_matches)
+        except:
+            print "couldn't unschedule"
+        Clock.schedule_once(self.calculate_event_matches, .2)
 
     def calculate_bouts(self, *largs):
         self.series_controller.clear_highlights()
@@ -251,6 +260,14 @@ class MainView(Widget):
             print "Identified transitions for series %s:" % (t.text,), transitions
             self.series_controller.add_arrows(label1, label2, transitions)
 
+    def calculate_event_matches(self, *largs):
+        self.series_controller.clear_col_highlights()
+        for t in self.event_box.listbox.variable_list.current_toggled:
+            label = t.text
+            before_dist = self.event_box.before_threshold
+            after_dist = self.event_box.after_threshold
+            print before_dist, after_dist
+            self.series_controller.add_col_highlights(label, -before_dist, after_dist)
 
     def add_subject(self):
         pass
@@ -294,15 +311,14 @@ class TransitionIDBox(BoxLayout):
         self.variable_pairs.append((pick1, pick2))
 
 class EventMatchingBox(BoxLayout):
-    matching_threshold = NumericProperty(1.)
-    available_variables = ListProperty([])
+    before_threshold = NumericProperty(-2.)
+    after_threshold = NumericProperty(2.)
 
-    def set_threshold(self, value):
-        self.matching_threshold = value
-        print value
+    def set_before_threshold(self, value):
+        self.before_threshold = value
 
-    def add_variable_pair(self):
-        pass
+    def set_after_threshold(self, value):
+        self.after_threshold = value
 
 
 class VariablePairer(BoxLayout):

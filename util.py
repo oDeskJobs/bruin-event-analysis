@@ -114,6 +114,10 @@ class SeriesController(Widget):
     def add_highlights(self, label, regions):
         self.series_dict[label].highlight_regions = regions
 
+    def add_col_highlights(self, label, before_distance, after_distance):
+        self.series_dict[label].col_highlights_distances = (before_distance, after_distance)
+
+
     def add_arrows(self, start_label, end_label, x_ranges):
         if (start_label, end_label) not in self.arrows:
             self.arrows[(start_label, end_label)] = ArrowList(self.series_dict[start_label], self.series_dict[end_label], x_ranges)        
@@ -129,6 +133,10 @@ class SeriesController(Widget):
     def clear_highlights(self):
         for _, v in self.series_dict.iteritems():
             v.highlight_regions = []
+
+    def clear_col_highlights(self):
+        for _, v in self.series_dict.iteritems():
+            v.col_highlights_distances = (None, None)
 
     # def enable_arrows(self, start_label, end_label):
     #     self.arrows[(start_label, end_label)].enable()
