@@ -107,19 +107,17 @@ class ArrowList(Widget):
     def on_size(self, instance, value):
         self.draw()
 
-
-
-
-
 class Series(Widget):
     fill_color = ListProperty([1,1,1])
     highlight_color = ListProperty([0.949019608,0.941176471,0.741176471, .55])
+    col_highlight_color = ListProperty([1,1,1,.55])
     enabled = BooleanProperty(False)
     data = ListProperty([])
     tick_width = NumericProperty(5)
     tick_height = NumericProperty(32)
     marker = StringProperty('tick')
     highlight_regions = ListProperty([])
+    col_highlights_distances = ListProperty([None, None])
 
     def __init__(self, plot, **kwargs):
         kwargs['size_hint'] = (None, None)
@@ -129,9 +127,13 @@ class Series(Widget):
         self.highlights = InstructionGroup()
         self.highlights_translate = Translate()
         
+        self.col_highlights = InstructionGroup()
+        self.col_highlights_translate = Translate()
 
         self.series = InstructionGroup()
         self.series_translate = Translate()
+
+        self.canvas.add(self.col_highlights)
         self.canvas.add(self.series)
         self.canvas.add(self.highlights)
 
@@ -171,6 +173,10 @@ class Series(Widget):
         print "redrawing with regions", self.highlight_regions
         self.draw()
 
+    def on_col_highlights_distances(self, instance, value):
+        print "redrawing with column highlights at", self.col_highlights_distances
+        self.draw()
+
     def draw(self, *largs):
         self.series.clear()
         self.series.add(PushMatrix())
@@ -201,7 +207,7 @@ class Series(Widget):
         # now draw the highlights, if there are any
         self.highlights.clear()
         self.highlights.add(PushMatrix())
-        self.highlights.add(Color(*self.highlight_color, mode='rgb'))
+        self.highlights.add(Color(*self.highlight_color, mode='rgba'))
         self.highlights.add(self.highlights_translate)
 
         highlight_height = int(1.2 * self.tick_height)
@@ -217,6 +223,29 @@ class Series(Widget):
 
         self.highlights.add(PopMatrix())
 
+        # finally, the col_highlights
+        self.col_highlights.clear()
+        self.col_highlights.add(PushMatrix())
+        # set color to be the same as the series color but at a much lower opacity
+        self.col_highlights.add(Color(*(self.fill_color[:3] + [.3]), mode='rgba'))
+        self.col_highlights.add(self.col_highlights_translate)
+
+        if None not in self.col_highlights_distances:
+            ds = self.col_highlights_distances
+            assert self.data_extents[1] == self.data_extents[3], "Highlights only work with x_only data."
+            y_start = self.plot.viewport[1]
+            y_end = self.plot.viewport[3]
+
+            for t, _ in self.data:
+                x_start = t-ds[0]
+                x_end = t+ds[1]
+                begin_point = [int(v) for v in self.plot.to_display_point(x_start, y_start)]
+                end_point = [int(v) for v in self.plot.to_display_point(x_end, y_end)]
+
+                self.col_highlights.add(Rectangle(pos = (begin_point[0], begin_point[1]), size = (end_point[0] - begin_point[0], end_point[1] - begin_point[1])))
+
+        self.col_highlights.add(PopMatrix())
+
 
 
     def _set_pos(self, instance, value):
@@ -230,6 +259,7 @@ class Series(Widget):
     def on_pos(self, instance, value):
         self.series_translate.xy = self.x, self.y
         self.highlights_translate.xy = self.x, self.y
+        self.col_highlights_translate.xy = self.x, self.y
 
     def on_size(self, instance, value):
         self.draw()
