@@ -76,7 +76,7 @@
                             title: "Behavior"
                             size_hint: (1,1)
                             add_button_callback: root.prompt_for_behavior_file
-
+                            remove_button_callback: root.remove_button
 
 
         # layout containing the processing options
@@ -397,6 +397,11 @@
             size_hint: (None, None) 
             size: (32, 32)
             on_release: ctx.add_button_callback()
+        Button:
+            background_normal: 'assets/minus32.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: ctx.remove_button_callback()
 
 [BoxWithHeaderNoAdd@BoxLayout]:
     listbox: listbox

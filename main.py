@@ -191,10 +191,8 @@ class MainView(Widget):
             print "%s has already been imported for this subject. Aborting." % (path,)
             return
 
-
         self.behavior_files.append(t)
         return
-
         # right here we need to create a series FOR EACH VARIABLE, and have them go down to the legend pane.
         s = Series(self.visualizer, fill_color = color_palette.get_color(t.source_file), marker = 'plus', tick_height = 20, tick_width = 5)
         # we definitely want a better way of handling Boolean data than just assigning it a hardcoded y value like this
@@ -275,6 +273,9 @@ class MainView(Widget):
     def add_session(self):
         pass
 
+    def remove_button(self):
+        self.behavior_button_list.del_button_mode = True
+
 class BoutIDBox(BoxLayout):
     bout_threshold = NumericProperty(1.)
 
@@ -345,6 +346,7 @@ class VariablesList(GridLayout):
     current_radio_button = ObjectProperty(None)
     preserve_button_state = BooleanProperty(False)
     radio_button_mode = BooleanProperty(False)
+    del_button_mode = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super(VariablesList, self).__init__(**kwargs)
@@ -386,6 +388,10 @@ class VariablesList(GridLayout):
 
 
     def button_press(instance, value):
+        if instance.del_button_mode:
+            instance.variable_list.remove(value.text)
+            instance.del_button_mode = False
+            return
         if value.state == 'down':
             value.parent.current_toggled.append(value)
             if value.parent.radio_button_mode == True:
