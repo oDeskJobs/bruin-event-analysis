@@ -273,8 +273,11 @@ class MainView(Widget):
     def add_session(self):
         pass
 
-    def remove_button(self):
+    def remove_behavior_button(self):
         self.behavior_button_list.del_button_mode = True
+
+    def remove_transient_button(self):
+        self.transient_button_list.del_button_mode = True
 
 class BoutIDBox(BoxLayout):
     bout_threshold = NumericProperty(1.)
@@ -310,6 +313,9 @@ class TransitionIDBox(BoxLayout):
         if pick1 is None or pick2 is None: return
 
         self.variable_pairs.append((pick1, pick2))
+
+    def remove_button_callback(self):
+        self.listbox.variable_list.del_button_mode = True
 
 class EventMatchingBox(BoxLayout):
     before_threshold = NumericProperty(-2.)

@@ -67,6 +67,7 @@
                             title: "Transients"
                             size_hint: (1,1)
                             add_button_callback: root.prompt_for_transient_file
+                            remove_button_callback: root.remove_transient_button
                     BoxLayout:
                         orientation: 'vertical'
                         spacing: grid_spacing
@@ -76,7 +77,7 @@
                             title: "Behavior"
                             size_hint: (1,1)
                             add_button_callback: root.prompt_for_behavior_file
-                            remove_button_callback: root.remove_button
+                            remove_button_callback: root.remove_behavior_button
 
 
         # layout containing the processing options
@@ -498,6 +499,11 @@
             size_hint: (None, None) 
             size: (32, 32)
             on_release: root.add_variable_pair()
+        Button:
+            background_normal: 'assets/minus32.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.remove_button_callback()
 
 <EventMatchingBox>:
     listbox: listbox
