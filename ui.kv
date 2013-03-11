@@ -419,6 +419,7 @@
 
 <BoutIDBox>:
     listbox: listbox
+    slider: sl1
     orientation: 'vertical'
     spacing: grid_spacing
     padding: grid_spacing
@@ -452,6 +453,7 @@
 
 <TransitionIDBox>:
     listbox: listbox
+    slider: sl2
     orientation: 'vertical'
     spacing: grid_spacing
     padding: grid_spacing
@@ -499,6 +501,8 @@
     orientation: 'vertical'
     spacing: grid_spacing
     padding: grid_spacing
+    ds: ds
+
     canvas:
         Color:
             rgb: box_color
@@ -551,3 +555,34 @@
         text: ctx.title
     VariablePairsBox:
         size_hint: (1,1)
+
+<AskForTextPopupContent>
+    BoxLayout:
+        pos: root.pos
+        size: root.size
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        Label: 
+            text: root.label
+            size_hint: (1, None)
+            height: 32
+        TextInput:
+            id: ti
+            text: ""
+            size_hint: (1, None)
+            height: 32
+        BoxLayout:
+            orientation: 'horizontal'
+            #spacing: 10
+            #padding: 10
+            size_hint: (1, None)
+            height: 32
+            Button:
+                text: "OK"
+                size_hint: (.5, 1)
+                on_release: root.ok_callback(ti.text)
+            Button:
+                text: "Cancel"
+                size_hint: (.5, 1)
+                on_release: root.cancel_callback()

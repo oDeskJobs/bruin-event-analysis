@@ -3,6 +3,81 @@ from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
 
 
+class Workspace(object):
+    """This class contains all the information required to load or save a workspace"""
+
+    transient_files = []
+    behavior_files = []
+    selected_transient_filenames = []
+    selected_behavior_filenames = []
+
+    selected_bout_variables = []
+    bout_threshold = 0
+
+    all_transition_variable_pairs = []
+    selected_transition_variable_pairs = []
+    transition_threshold = 0
+
+    selected_event_matching_variables = []
+    event_matching_before_threshold = 0
+    event_matching_after_threshold = 0
+
+
+
+    def save(self, mainview_widget):
+        m = mainview_widget
+        
+        self.transient_files = m.transient_files
+        self.selected_transient_filenames = [v.text for v in m.transient_button_list.current_toggled]
+
+        self.behavior_files = m.behavior_files
+        self.selected_behavior_filenames = [v.text for v in m.behavior_button_list.current_toggled]
+
+        self.selected_bout_variables = [v.text for v in m.bout_id_button_list.current_toggled]
+        self.bout_threshold = m.bout_id_box.bout_threshold
+
+        self.all_transition_variable_pairs = list(m.transition_button_list.variable_list)
+        self.selected_transition_variable_pairs = [v.text for v in m.transition_button_list.current_toggled]
+        self.transition_threshold = m.transition_box.transition_threshold
+
+        self.selected_event_matching_variables = [v.text for v in m.event_button_list.current_toggled]
+        self.event_matching_before_threshold = m.event_box.before_threshold
+        self.event_matching_after_threshold = m.event_box.after_threshold
+
+    def load(self, mainview_widget):
+        m = mainview_widget
+
+        m.transient_files = self.transient_files
+        m.transient_button_list.deselect_all()
+        for f in self.selected_transient_filenames:
+            m.transient_button_list.set_state(f, 'down')
+
+
+        m.behavior_files = self.behavior_files
+        m.behavior_button_list.deselect_all()
+        for f in self.selected_behavior_filenames:
+            m.behavior_button_list.set_state(f, 'down')
+
+        # this might need to be scheduled for after the previous section gets completed.
+        # it doesn't seem like it now, but we ought to test on a slower computer. Not sure
+        # if Kivy property watching is instant or waits a frame. I think it's instant.
+        
+        m.bout_id_button_list.deselect_all()
+        for f in self.selected_bout_variables:
+            m.bout_id_button_list.set_state(f, 'down')
+        m.bout_id_box.slider.value = self.bout_threshold
+
+        m.transition_button_list.variable_list =  self.all_transition_variable_pairs
+        m.transition_button_list.deselect_all()
+        for f in self.selected_transition_variable_pairs:
+            m.transition_button_list.set_state(f, 'down')
+        m.transition_box.slider.value = self.transition_threshold
+
+        m.event_button_list.deselect_all()
+        for f in self.selected_event_matching_variables:
+            m.event_button_list.set_state(f, 'down')
+        m.event_box.ds.value = self.event_matching_before_threshold
+        m.event_box.ds.value2 = self.event_matching_after_threshold
 
 class SeriesController(Widget):
 
@@ -151,9 +226,7 @@ class ColorPalette(object):
     (0.949019608, 0.596078431, 0.),
     (0.784313725, 0., 0.),
     (0.305882353, 0., 0.619607843),
-    (0.968627451, 0.811764706, 0.
-
-        )
+    (0.968627451, 0.811764706, 0.)
     ]
 
     color_dict = {}

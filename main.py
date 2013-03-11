@@ -13,7 +13,7 @@ from kivy.clock import Clock
 
 from double_slider import DoubleSlider
 from data_models import TransientDataFile, BehaviorDataFile
-from util import SeriesController
+from util import SeriesController, Workspace
 
 import os
 
@@ -79,7 +79,6 @@ class MainView(Widget):
 
     legend_width = NumericProperty(300)
 
-
     def __init__(self, **kwargs):
         super(MainView, self).__init__(**kwargs)
         self.transient_files = []
@@ -110,10 +109,10 @@ class MainView(Widget):
         self.event_box.bind(before_threshold=self._event_params_changed)
         self.event_box.bind(after_threshold=self._event_params_changed)
 
-        #debug
-        self.session_box.listbox.variable_list.variable_list = ['2/26/13']
-        self.subject_box.listbox.variable_list.variable_list = ['Subject 1']
-        #/debug
+        
+        self.session_box.listbox.variable_list.variable_list = []
+        self.subject_box.listbox.variable_list.variable_list = []
+        
 
         # define a function that tells which labels should come before other labels. Ensures that "Transients"
         # always appears first, and then subsequent labels are sorted by alphabetical order
@@ -270,24 +269,60 @@ class MainView(Widget):
             self.series_controller.add_col_highlights(label, -before_dist, after_dist)
 
     def add_subject(self):
-        pass
+        p = AskForTextPopup(title = "New Subject", label= "Please name this subject.", callback = self._add_subject_callback)
+        p.open()
 
     def add_session(self):
-        pass
+        p = AskForTextPopup(title = "New Session", label= "Please name this session.", callback = self._add_session_callback)
+        p.open()
+
+    def _add_session_callback(self, session_name):
+        print session_name
+
+    def _add_subject_callback(self, subject_name):
+        print subject_name
+
+class AskForTextPopup(Popup):
+
+    def __init__(self, title = "Selection", label = "Please provide a value.", callback = None, **kwargs):
+        assert callback is not None
+        self.callback = callback
+
+        kwargs['size_hint'] = (None, None)
+        kwargs['size'] = (300, 200)
+        kwargs['title'] = title
+        kwargs['content'] = AskForTextPopupContent(title = title, label = label, ok_callback = self._ok_callback, cancel_callback = self._cancel_callback)
+
+        super(AskForTextPopup, self).__init__(**kwargs)
+
+    def _ok_callback(self, text):
+        self.dismiss()
+        self.callback(text)
+
+    def _cancel_callback(self):
+        self.dismiss()
+
+class AskForTextPopupContent(Widget):
+    label = StringProperty("")
+    ok_callback = ObjectProperty(None)
+    cancel_callback = ObjectProperty(None)
+    text = StringProperty("")
 
 class BoutIDBox(BoxLayout):
     bout_threshold = NumericProperty(1.)
+    slider = ObjectProperty(None)
+
 
     def set_threshold(self, value):
         self.bout_threshold = value
         print value
-
 
 class TransitionIDBox(BoxLayout):
     transition_threshold = NumericProperty(1.)
     available_variables = ListProperty([])
     variable_pairs = ListProperty([])
     listbox = ObjectProperty(None)
+    slider = ObjectProperty(None)
 
     def set_threshold(self, value):
         self.transition_threshold = value
@@ -313,6 +348,7 @@ class TransitionIDBox(BoxLayout):
 class EventMatchingBox(BoxLayout):
     before_threshold = NumericProperty(-2.)
     after_threshold = NumericProperty(2.)
+    ds = ObjectProperty(None)
 
     def set_before_threshold(self, value):
         self.before_threshold = value
@@ -385,6 +421,11 @@ class VariablesList(GridLayout):
                 self.current_toggled.append(each)
 
 
+    def deselect_all(self):
+        for b in self.current_buttons:
+            b.state = 'normal'
+        self.current_toggled = []
+
     def button_press(instance, value):
         if value.state == 'down':
             value.parent.current_toggled.append(value)
@@ -399,8 +440,13 @@ class VariablesList(GridLayout):
         self.canvas.clear()
         self.populate_list()
 
-    def append_test(self, dt):
-        self.variable_list.append('6')
+    def set_state(self, label, state):
+        assert state in ['down', 'normal'], "State must be either 'down' or 'normal'"
+        for b in self.current_buttons:
+            if b.text == label:
+                b.state = state
+                if state == 'down' and b not in self.current_toggled: self.current_toggled.append(b)
+                if state == 'normal' and b in self.current_toggled: self.current_toggled.remove(b)
 
 class VariablePairsBox(BoxLayout):
     layout = ObjectProperty(None)
