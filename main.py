@@ -280,6 +280,12 @@ class MainView(Widget):
     def _add_subject_callback(self, subject_name):
         print subject_name
 
+    def remove_behavior_button(self):
+        self.behavior_button_list.del_button_mode = True
+
+    def remove_transient_button(self):
+        self.transient_button_list.del_button_mode = True
+
 class AskForTextPopup(Popup):
 
     def __init__(self, title = "Selection", label = "Please provide a value.", callback = None, **kwargs):
@@ -306,11 +312,7 @@ class AskForTextPopupContent(Widget):
     cancel_callback = ObjectProperty(None)
     text = StringProperty("")
 
-    def remove_behavior_button(self):
-        self.behavior_button_list.del_button_mode = True
 
-    def remove_transient_button(self):
-        self.transient_button_list.del_button_mode = True
 
 class BoutIDBox(BoxLayout):
     bout_threshold = NumericProperty(1.)
