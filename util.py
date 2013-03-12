@@ -3,6 +3,7 @@ from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
 
 
+
 class Workspace(object):
     """This class contains all the information required to load or save a workspace"""
 
@@ -28,6 +29,7 @@ class Workspace(object):
         m = mainview_widget
         
         self.transient_files = m.transient_files
+        print "saving transient files as ", self.transient_files
         self.selected_transient_filenames = [v.text for v in m.transient_button_list.current_toggled]
 
         self.behavior_files = m.behavior_files
@@ -47,6 +49,7 @@ class Workspace(object):
     def load(self, mainview_widget):
         m = mainview_widget
 
+        print "setting transient files to ", self.transient_files
         m.transient_files = self.transient_files
         m.transient_button_list.deselect_all()
         for f in self.selected_transient_filenames:
@@ -78,6 +81,32 @@ class Workspace(object):
             m.event_button_list.set_state(f, 'down')
         m.event_box.ds.value = self.event_matching_before_threshold
         m.event_box.ds.value2 = self.event_matching_after_threshold
+
+
+class Subject(object):
+    def __init__(self, name):
+        self.name = name
+        self.workspace = Workspace()
+
+    def __str__(self):
+        return self.name
+
+class Session(object):
+
+    def __init__(self, name):
+        self.name = name
+        self.subjects = []
+
+    def add_subject(self, subject_name):
+        self.subjects.append(Subject(subject_name))
+
+    def remove_subject(self, subject):
+        print self.subjects
+        self.subjects.remove(subject)
+        print self.subjects
+
+    def __str__(self):
+        return self.name
 
 class SeriesController(Widget):
 

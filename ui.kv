@@ -39,15 +39,19 @@
             orientation: 'horizontal'
             spacing: grid_spacing
             BoxWithHeader:
+                radio_button_mode: True
                 title: "Sessions"
                 id: session_box
                 size_hint: (.2,1)
                 add_button_callback: root.add_session
+                remove_button_callback: root.remove_session_button
             BoxWithHeader:
                 title: "Subjects"
                 id: subject_box
                 size_hint: (.2, 1)
                 add_button_callback: root.add_subject
+                remove_button_callback: root.remove_subject_button
+                radio_button_mode: True
             BoxLayout:
                 orientation: 'vertical'
                 spacing: grid_spacing
@@ -66,6 +70,7 @@
                             id: transient_box
                             title: "Transients"
                             size_hint: (1,1)
+                            radio_button_mode: False
                             add_button_callback: root.prompt_for_transient_file
                             remove_button_callback: root.remove_transient_button
                     BoxLayout:
@@ -73,6 +78,7 @@
                         spacing: grid_spacing
                         size_hint: (.5, 1)
                         BoxWithHeader:
+                            radio_button_mode: False
                             id: behavior_box
                             title: "Behavior"
                             size_hint: (1,1)
@@ -137,20 +143,6 @@
                 height: header_height
                 size_hint: (1,None)
 
-<ListBox>:
-    layout: layout
-    ScrollView:
-        size_hint: (1, None)
-        size: root.size
-        do_scroll_x: False
-        scroll_distance: 3
-        scroll_timeout: 50
-
-        GridLayout:
-            id: layout
-            size_hint: (1, None)
-            cols: 1
-            spacing: header_height + listbox_spacing
 
 <VariablesList>:
     size_hint: (1, None)
@@ -161,6 +153,7 @@
 
 <VariableBox>:
     variable_list: variable_list
+    radio_button_mode: False
     ScrollView:
         size_hint: (1, None)
         size: root.size
@@ -169,7 +162,7 @@
         scroll_timeout: 50
         VariablesList:
             id: variable_list
-            preserve_button_state: True
+            radio_button_mode: root.radio_button_mode
 
 <VariablePair>:
     toggle_button: toggle_button
@@ -226,41 +219,6 @@
         size_hint_x: .8
         size_hint_y: .2
 
-            
-<GetItemName>:
-    BoxLayout:
-        orientation: 'vertical'
-        pos: root.pos
-        size: root.size
-        spacing: 10
-        padding: 10
-        Label:
-            size_hint_y: .15
-            font_size: root.size[1]*.08
-            valign: 'middle'
-            halign: 'left'
-            #bold: True
-            text: 'Please Enter Item Name:'
-        TextInput:
-            size_hint_y: .4
-            multiline: False
-            focus: True
-            text: root.text
-            on_text: root.text = args[1]
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: .4
-            Widget:
-                size_hint_x: .2
-                size_hint_y: 1
-            Button:
-                text: 'OK'
-                size_hint_x: .6
-                size_hint_y: .9
-                on_release: root.ok = True
-            Widget:
-                size_hint_x: .2
-                size_hint_y: 1
 
 <LoadSave>:
     BoxLayout:
@@ -283,26 +241,6 @@
                 on_release: root.show_save()
                 on_state: root.ok = True
         
-<ListItem>:
-    BoxLayout:
-        pos: root.pos
-        size: root.size
-        orientation: 'horizontal'
-        size_hint: (1, None)
-        padding: 0
-        spacing: 2
-        Button:
-            text: '-'
-            on_press: root.remove_item()
-            height: header_height
-            width: 30
-            size_hint: (None, None)
-        Button:
-            text: root.item_info
-            on_press: root.item_callback()
-            background_color: (0,0,1,1) if root.item_state=='down' else (1,1,1,1)
-            height: header_height
-            size_hint: (1, None)
 
 <LoadDialog>:
     filechooser: filechooser
@@ -374,6 +312,7 @@
     spacing: grid_spacing
     padding: grid_spacing
     size_hint: ctx.size_hint
+    radio_button_mode: ctx.radio_button_mode
     canvas:
         Color:
             rgb: box_color
@@ -385,6 +324,7 @@
     VariableBox:
         id: listbox
         size_hint: (1,1)
+        radio_button_mode: root.radio_button_mode
     BoxLayout:
         size_hint: (1, None)
         height: 32
@@ -403,6 +343,7 @@
             size_hint: (None, None) 
             size: (32, 32)
             on_release: ctx.remove_button_callback()
+
 
 [BoxWithHeaderNoAdd@BoxLayout]:
     listbox: listbox
@@ -583,6 +524,7 @@
             text: ""
             size_hint: (1, None)
             height: 32
+            focus: True
         BoxLayout:
             orientation: 'horizontal'
             #spacing: 10
