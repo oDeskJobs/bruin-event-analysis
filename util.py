@@ -1,6 +1,7 @@
 from kivy_plotter.plot import Series, ArrowList
 from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
+from copy import copy
 
 
 
@@ -28,11 +29,11 @@ class Workspace(object):
     def save(self, mainview_widget):
         m = mainview_widget
         
-        self.transient_files = m.transient_files
+        self.transient_files = copy(m.transient_files)
         print "saving transient files as ", self.transient_files
         self.selected_transient_filenames = [v.text for v in m.transient_button_list.current_toggled]
 
-        self.behavior_files = m.behavior_files
+        self.behavior_files = copy(m.behavior_files)
         self.selected_behavior_filenames = [v.text for v in m.behavior_button_list.current_toggled]
 
         self.selected_bout_variables = [v.text for v in m.bout_id_button_list.current_toggled]
