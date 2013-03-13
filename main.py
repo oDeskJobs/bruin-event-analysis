@@ -320,21 +320,27 @@ class MainView(Widget):
 
     def _add_session_callback(self, session_name):
         if session_name.strip() == "": return
+        if len([s for s in self.sessions if s.name == session_name]) != 0:
+            show_message("That name is already used; please choose a different one.")
+            return
         s = Session(session_name)
         self.sessions.append(s)
         self.session_button_list.set_state(session_name, 'down')
 
     def _add_subject_callback(self, subject_name):
         if subject_name.strip() == "" or self.current_session is None: return
+        if len([s for s in self.subjects if s.name == subject_name]) != 0:
+            show_message("That name is already used; please choose a different one.")
+            return
         self.current_session.add_subject(subject_name)
         self.subjects = self.current_session.subjects
         self.subject_button_list.set_state(subject_name, 'down')
 
     def remove_behavior_button(self):
-        self.behavior_button_list.del_button_mode = True
+        self.behavior_button_list.del_button_mode = not self.behavior_button_list.del_button_mode
 
     def remove_transient_button(self):
-        self.transient_button_list.del_button_mode = True
+        self.transient_button_list.del_button_mode = not self.transient_button_list.del_button_mode
 
     def _session_select_changed(self, instance, value):
         names = [v.text for v in value]
@@ -362,10 +368,10 @@ class MainView(Widget):
             self.current_subject.workspace.load(self)
 
     def remove_session_button(self):
-        self.session_button_list.del_button_mode = True
+        self.session_button_list.del_button_mode = not self.session_button_list.del_button_mode
 
     def remove_subject_button(self):
-        self.subject_button_list.del_button_mode = True
+        self.subject_button_list.del_button_mode = not self.subject_button_list.del_button_mode
 
     def _remove_session_callback(self, text):
         if self.current_session is not None and self.current_session.name == text:
@@ -389,7 +395,8 @@ class MainView(Widget):
         self.transient_files = [t for t in self.transient_files if os.path.basename(t.source_file) != text]
 
     def _remove_behavior_callback(self, text):
-        print 'removing', text
+        self.behavior_files = [t for t in self.behavior_files if os.path.basename(t.source_file) != text]
+
 
     def _add_schema(self, filename):
         if not os.path.isfile(filename) or not filename.endswith('.schema'): 
@@ -414,7 +421,7 @@ class MainView(Widget):
 
     def _bout_id_export_callback(self, series_labels, out_filename):
         if len(series_labels) == 1:
-            self.series_controller.export_bouts(series_labels[0], out_filename)
+            self.series_controller.export_bouts(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
         else:
             outf_basename = os.path.splitext(out_filename)[0]
             for label in series_labels:
@@ -501,7 +508,7 @@ class TransitionIDBox(BoxLayout):
         self.variable_pairs.append((pick1, pick2))
 
     def remove_button_callback(self):
-        self.listbox.variable_list.del_button_mode = True
+        self.listbox.variable_list.del_button_mode = not self.listbox.variable_list.del_button_mode
 
     def export_data(self):
         selected = [v.text for v in self.listbox.variable_list.current_toggled]
@@ -574,17 +581,19 @@ class VariablesList(GridLayout):
 
     def populate_list(self, toggled_text = None):
         if toggled_text is None: toggled_text = []
+        self.canvas.clear()
         self.clear_widgets()
         for each in self.variable_list:
             variable_button = ToggleButton(text = each, on_release = self.button_press)
-            if each in toggled_text: 
-                variable_button.state = 'down'
-                self.button_press(variable_button)
             if self.radio_button_mode:
                 variable_button.group = self
+            print variable_button.text, variable_button.group
             self.add_widget(variable_button)
             self.current_buttons.append(variable_button)
         self.height = len(self.variable_list) * (self.row_default_height + self.spacing)
+
+        for label in toggled_text:
+            self.set_state(label, 'down')
 
     def deselect_all(self):
         for b in self.current_buttons:
@@ -597,6 +606,13 @@ class VariablesList(GridLayout):
             for each in self.current_buttons:
                 each.group = self
 
+    def on_del_button_mode(self, instance, value):
+        if value:
+            for each in self.current_buttons:
+                each.background_color = [1, 0, 0, 1]
+        else:
+            for each in self.current_buttons:
+                each.background_color = [1, 1, 1, 1]
 
     def button_press(self, button):
         if self.del_button_mode:
@@ -616,11 +632,15 @@ class VariablesList(GridLayout):
     def on_variable_list(self, instance, value):
         toggled_text = [v.text for v in self.current_toggled]
         self.clear_list()
-        self.canvas.clear()
+        self.del_button_mode = False
         self.populate_list(toggled_text = toggled_text)
 
     def set_state(self, label, state):
         assert state in ['down', 'normal'], "State must be either 'down' or 'normal'"
+        
+        # this should not be necessary, but it is.
+        if state == 'down' and self.radio_button_mode: self.deselect_all()
+
         for b in self.current_buttons:
             if b.text == label:
                 b.state = state
