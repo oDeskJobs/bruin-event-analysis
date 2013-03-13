@@ -2,7 +2,7 @@ from kivy_plotter.plot import Series, ArrowList
 from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
 from copy import copy
-
+import csv
 
 
 class Workspace(object):
@@ -249,11 +249,16 @@ class SeriesController(Widget):
         for _, v in self.series_dict.iteritems():
             v.col_highlights_distances = (None, None)
 
-    # def enable_arrows(self, start_label, end_label):
-    #     self.arrows[(start_label, end_label)].enable()
+    def export_bouts(self, label, filename):
+        with open(filename, 'w') as inf:
+            csvwriter = csv.writer(inf)
+            csvwriter.writerow(['Bout ID', 'Start Time', 'End Time', 'Number of Events', 'Avg Inter-event time'])
+            data_x = self.series_dict[label].data_x
+            for idx, region in enumerate(self.series_dict[label].highlight_regions):
+                relevant_data = [x for x in data_x if region[0] <= x <= region[1]]
+                csvwriter.writerow([idx, region[0], region[1], len(relevant_data), 'NYI'])
 
-    # def disable_arrows(self, start_label, end_label):
-    #     self.arrows[(start_label, end_label)].disable()    
+
 
 
 class ColorPalette(object):

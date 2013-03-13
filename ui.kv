@@ -276,7 +276,7 @@
             size_hint_y: None
             height: 30
             multiline: False
-
+            focus: True
         BoxLayout:
             size_hint_y: None
             height: 30
@@ -440,7 +440,19 @@
     VariableBox:
         id: listbox
         size_hint: (1,1)
-
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.export_data()
 
 <TransitionIDBox>:
     listbox: listbox
@@ -480,6 +492,12 @@
         orientation: 'horizontal'
         Widget:
             size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.export_data()
         Button:
             background_normal: 'assets/plus32.png'
             background_down: 'assets/plus32-purple.png'
@@ -530,7 +548,19 @@
     VariableBox:
         id: listbox
         size_hint: (1,1)
-
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.export_data()
 
 [BoxWithHeader2@BoxLayout]:
     listbox: listbox
@@ -569,6 +599,7 @@
             size_hint: (1, None)
             height: 32
             focus: True
+            multiline: False
         BoxLayout:
             orientation: 'horizontal'
             #spacing: 10
@@ -583,3 +614,28 @@
                 text: "Cancel"
                 size_hint: (.5, 1)
                 on_release: root.cancel_callback()
+
+<MessagePopupContent>
+    BoxLayout:
+        pos: root.pos
+        size: root.size
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        Label: 
+            text: root.text
+            size_hint: (1, 1)
+            text_size: self.size
+            valign: 'middle'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: (1, None)
+            height: 32
+            Widget:
+                size_hint: (.4, 1)
+            Button:
+                text: "OK"
+                size_hint: (.2, 1)
+                on_release: root.ok_callback()
+            Widget:
+                size_hint: (.4, 1)
