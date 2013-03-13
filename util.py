@@ -1,8 +1,119 @@
 from kivy_plotter.plot import Series, ArrowList
 from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
+from copy import copy
+import csv
 
 
+class Workspace(object):
+    """This class contains all the information required to load or save a workspace"""
+
+    transient_files = []
+    behavior_files = []
+    selected_transient_filenames = []
+    selected_behavior_filenames = []
+    schema = None
+
+    selected_bout_variables = []
+    bout_threshold = 1.
+
+    all_transition_variable_pairs = []
+    selected_transition_variable_pairs = []
+    transition_threshold = 1.
+
+    selected_event_matching_variables = []
+    event_matching_before_threshold = -2
+    event_matching_after_threshold = 2
+
+    visible_series = []
+
+    def save(self, mainview_widget):
+        m = mainview_widget
+        
+        self.transient_files = copy(m.transient_files)
+        self.selected_transient_filenames = [v.text for v in m.transient_button_list.current_toggled]
+
+        self.behavior_files = copy(m.behavior_files)
+        self.selected_behavior_filenames = [v.text for v in m.behavior_button_list.current_toggled]
+        self.schema = m.schema
+
+        self.selected_bout_variables = [v.text for v in m.bout_id_button_list.current_toggled]
+        self.bout_threshold = m.bout_id_box.bout_threshold
+
+        self.all_transition_variable_pairs = list(m.transition_button_list.variable_list)
+        self.selected_transition_variable_pairs = [v.text for v in m.transition_button_list.current_toggled]
+        self.transition_threshold = m.transition_box.transition_threshold
+
+        self.selected_event_matching_variables = [v.text for v in m.event_button_list.current_toggled]
+        self.event_matching_before_threshold = m.event_box.before_threshold
+        self.event_matching_after_threshold = m.event_box.after_threshold
+
+        self.visible_series = [v.text for v in m.legend_button_list.current_toggled]
+
+    def load(self, mainview_widget):
+        m = mainview_widget
+
+        print "setting transient files to ", self.transient_files
+        m.transient_files = self.transient_files
+        m.transient_button_list.deselect_all()
+        for f in self.selected_transient_filenames:
+            m.transient_button_list.set_state(f, 'down')
+
+        m.schema = self.schema
+        m.behavior_files = self.behavior_files
+        m.behavior_button_list.deselect_all()
+        for f in self.selected_behavior_filenames:
+            m.behavior_button_list.set_state(f, 'down')
+
+        # this might need to be scheduled for after the previous section gets completed.
+        # it doesn't seem like it now, but we ought to test on a slower computer. Not sure
+        # if Kivy property watching is instant or waits a frame. I think it's instant.
+        
+        m.bout_id_button_list.deselect_all()
+        for f in self.selected_bout_variables:
+            m.bout_id_button_list.set_state(f, 'down')
+        m.bout_id_box.slider.value = self.bout_threshold
+
+        m.transition_button_list.variable_list =  self.all_transition_variable_pairs
+        m.transition_button_list.deselect_all()
+        for f in self.selected_transition_variable_pairs:
+            m.transition_button_list.set_state(f, 'down')
+        m.transition_box.slider.value = self.transition_threshold
+
+        m.event_button_list.deselect_all()
+        for f in self.selected_event_matching_variables:
+            m.event_button_list.set_state(f, 'down')
+        m.event_box.ds.value = self.event_matching_before_threshold
+        m.event_box.ds.value2 = self.event_matching_after_threshold
+
+        m.legend_button_list.deselect_all()
+        for f in self.visible_series:
+            m.legend_button_list.set_state(f, 'down')
+
+class Subject(object):
+    def __init__(self, name):
+        self.name = name
+        self.workspace = Workspace()
+
+    def __str__(self):
+        return self.name
+
+class Session(object):
+
+    def __init__(self, name):
+        self.name = name
+        self.subjects = []
+
+    def add_subject(self, subject_name):
+        self.subjects.append(Subject(subject_name))
+
+    def remove_subject(self, subject):
+        print self.subjects
+        self.subjects.remove(subject)
+        print self.subjects
+
+    def __str__(self):
+        return self.name
 
 class SeriesController(Widget):
 
@@ -138,11 +249,16 @@ class SeriesController(Widget):
         for _, v in self.series_dict.iteritems():
             v.col_highlights_distances = (None, None)
 
-    # def enable_arrows(self, start_label, end_label):
-    #     self.arrows[(start_label, end_label)].enable()
+    def export_bouts(self, label, filename):
+        with open(filename, 'w') as inf:
+            csvwriter = csv.writer(inf)
+            csvwriter.writerow(['Bout ID', 'Start Time', 'End Time', 'Number of Events', 'Avg Inter-event time'])
+            data_x = self.series_dict[label].data_x
+            for idx, region in enumerate(self.series_dict[label].highlight_regions):
+                relevant_data = [x for x in data_x if region[0] <= x <= region[1]]
+                csvwriter.writerow([idx, region[0], region[1], len(relevant_data), 'NYI'])
 
-    # def disable_arrows(self, start_label, end_label):
-    #     self.arrows[(start_label, end_label)].disable()    
+
 
 
 class ColorPalette(object):
@@ -151,9 +267,7 @@ class ColorPalette(object):
     (0.949019608, 0.596078431, 0.),
     (0.784313725, 0., 0.),
     (0.305882353, 0., 0.619607843),
-    (0.968627451, 0.811764706, 0.
-
-        )
+    (0.968627451, 0.811764706, 0.)
     ]
 
     color_dict = {}

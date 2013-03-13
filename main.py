@@ -13,9 +13,10 @@ from kivy.clock import Clock
 
 from double_slider import DoubleSlider
 from data_models import TransientDataFile, BehaviorDataFile
-from util import SeriesController
+from util import SeriesController, Workspace, Subject, Session
 
 import os
+from functools import partial
 
 Builder.load_file('ui.kv')
 
@@ -62,7 +63,6 @@ def get_transitions_from_xy_data(data1, data2, threshold = 1.):
 
     return transitions
 
-
 class MainView(Widget):
     visualizer = ObjectProperty(None)
     transient_box = ObjectProperty(None)
@@ -76,9 +76,13 @@ class MainView(Widget):
 
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
+    schema = StringProperty(None, allownone = True)
+    sessions = ListProperty(None)
+    current_session = ObjectProperty(None, allownone = True)
+    subjects = ListProperty(None)
+    current_subject = ObjectProperty(None, allownone = True)
 
     legend_width = NumericProperty(300)
-
 
     def __init__(self, **kwargs):
         super(MainView, self).__init__(**kwargs)
@@ -88,10 +92,21 @@ class MainView(Widget):
         self.series_controller = SeriesController(self.visualizer)
         self.series_controller.bind(all_variables_list = self._all_variables_changed)
 
+        self.session_button_list = self.session_box.listbox.variable_list
+        self.session_button_list.remove_button_callback = self._remove_session_callback
+        self.session_button_list.bind(current_toggled=self._session_select_changed)
+
+        self.subject_button_list = self.subject_box.listbox.variable_list
+        self.subject_button_list.remove_button_callback = self._remove_subject_callback
+        self.subject_button_list.bind(current_toggled=self._subject_select_changed)
+        # self.bind(subjects=self._subject_select_changed)
+
         self.transient_button_list = self.transient_box.listbox.variable_list
+        self.transient_button_list.remove_button_callback = self._remove_transient_callback
         self.transient_button_list.bind(current_toggled=self._transient_select_changed)
 
         self.behavior_button_list = self.behavior_box.listbox.variable_list
+        self.behavior_button_list.remove_button_callback = self._remove_behavior_callback
         self.behavior_button_list.bind(current_toggled=self._behavior_select_changed)
 
         self.legend_button_list = self.legend_box.listbox.variable_list
@@ -100,24 +115,29 @@ class MainView(Widget):
         self.bout_id_button_list = self.bout_id_box.listbox.variable_list
         self.bout_id_button_list.bind(current_toggled=self._bout_id_params_changed)
         self.bout_id_box.bind(bout_threshold=self._bout_id_params_changed)
+        self.bout_id_box.export_callback = self.bout_id_export
 
         self.transition_button_list = self.transition_box.listbox.variable_list
         self.transition_button_list.bind(current_toggled=self._transition_params_changed)
         self.transition_box.bind(transition_threshold=self._transition_params_changed)
+        self.transition_box.export_callback = self.transition_export
 
         self.event_button_list = self.event_box.listbox.variable_list
         self.event_button_list.bind(current_toggled=self._event_params_changed)
         self.event_box.bind(before_threshold=self._event_params_changed)
         self.event_box.bind(after_threshold=self._event_params_changed)
+        self.event_box.export_callback = self.event_export
 
-        #debug
-        self.session_box.listbox.variable_list.variable_list = ['2/26/13']
-        self.subject_box.listbox.variable_list.variable_list = ['Subject 1']
-        #/debug
-
+        
+        self.session_box.listbox.variable_list.variable_list = []
+        self.subject_box.listbox.variable_list.variable_list = []
+        
         # define a function that tells which labels should come before other labels. Ensures that "Transients"
         # always appears first, and then subsequent labels are sorted by alphabetical order
         self.label_sort_func = lambda x: '0000000' if x.lower() == 'transients' else x.lower()
+
+        self.blank_workspace = Workspace()
+        self.blank_workspace.save(self)
 
     def setup_visualizer(self):
         v = self.visualizer
@@ -131,21 +151,35 @@ class MainView(Widget):
         v.tick_distance_y = 20
 
     def prompt_for_transient_file(self):
-        LoadSave(action='load', callback=self._add_transient_file)
+        if self.current_subject is None: 
+            show_message("You must choose a subject before importing files.")
+            return
+        LoadSave(action='load', callback=self._add_transient_file, filters=['*.csv'])
 
     def prompt_for_behavior_file(self):
-        LoadSave(action='load', callback=self._add_behavior_file)
+        if self.current_subject is None: 
+            show_message("You must choose a subject before importing files.")
+            return
+        if self.schema is None:
+            show_message("You must choose a schema before importing a behavior file.")
+            return
+        LoadSave(action='load', callback=self._add_behavior_file, filters=['*.csv'])
+
+    def prompt_for_schema(self):
+        if self.current_subject is None: 
+            show_message("You must choose a subject before importing files.")
+            return
+        LoadSave(action='load', callback=self._add_schema, filters=['*.schema'])
 
     def _add_transient_file(self, path):
         try:
             t = TransientDataFile(path)
         except:
-            print "Could not import %s as a transient data file. Aborting." % (path,)
-            # we will want to make this visible in a popup.
+            show_message("Could not import this file as a transient data file. Aborting.")
             return
 
         if os.path.basename(t.source_file) in [os.path.basename(x.source_file) for x in self.transient_files]:
-            print "%s has already been imported for this subject. Aborting." % (path,)
+            show_message("This file has already been imported for this subject. Aborting.")
             return
 
         self.transient_files.append(t)
@@ -155,6 +189,12 @@ class MainView(Widget):
 
     def on_behavior_files(self, instance, value):
         self.behavior_button_list.variable_list = [os.path.basename(t.source_file) for t in self.behavior_files]
+
+    def on_sessions(self, instance, value):
+        self.session_button_list.variable_list = [str(x) for x in self.sessions]
+
+    def on_subjects(self, instance, value):
+        self.subject_button_list.variable_list = [str(x) for x in self.subjects]
 
     def _transient_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
@@ -175,26 +215,24 @@ class MainView(Widget):
                     self.series_controller.add_data(field, data, marker='plus', is_x_only = True)
 
     def _add_behavior_file(self, path):
-        schema_file = os.path.splitext(path)[0] + '.schema'
-        if not os.path.isfile(schema_file):
+        
+        if self.schema is None or not os.path.isfile(self.schema):
             print "No schema file present. Aborting."
             return
 
         try:
-            t = BehaviorDataFile(path, schema_file)
+            t = BehaviorDataFile(path, self.schema)
         except:
-            print "Could not import %s as a behavior data file. Aborting." % (path,)
+            show_message("Could not import this file as a behavior data file. Aborting.")
             # we will want to make this visible in a popup.
             return
 
         if os.path.basename(t.source_file) in [os.path.basename(x.source_file) for x in self.behavior_files]:
-            print "%s has already been imported for this subject. Aborting." % (path,)
+            show_message("This file has already been imported for this subject. Aborting.")
             return
-
 
         self.behavior_files.append(t)
         return
-
         # right here we need to create a series FOR EACH VARIABLE, and have them go down to the legend pane.
         s = Series(self.visualizer, fill_color = color_palette.get_color(t.source_file), marker = 'plus', tick_height = 20, tick_width = 5)
         # we definitely want a better way of handling Boolean data than just assigning it a hardcoded y value like this
@@ -270,17 +308,175 @@ class MainView(Widget):
             self.series_controller.add_col_highlights(label, -before_dist, after_dist)
 
     def add_subject(self):
-        pass
+        if self.current_session is None:
+            show_message("Please select a session before adding a subject.")
+            return
+        p = AskForTextPopup(title = "New Subject", label= "Please name this subject.", callback = self._add_subject_callback)
+        p.open()
 
     def add_session(self):
+        p = AskForTextPopup(title = "New Session", label= "Please name this session.", callback = self._add_session_callback)
+        p.open()
+
+    def _add_session_callback(self, session_name):
+        if session_name.strip() == "": return
+        if len([s for s in self.sessions if s.name == session_name]) != 0:
+            show_message("That name is already used; please choose a different one.")
+            return
+        s = Session(session_name)
+        self.sessions.append(s)
+        self.session_button_list.set_state(session_name, 'down')
+
+    def _add_subject_callback(self, subject_name):
+        if subject_name.strip() == "" or self.current_session is None: return
+        if len([s for s in self.subjects if s.name == subject_name]) != 0:
+            show_message("That name is already used; please choose a different one.")
+            return
+        self.current_session.add_subject(subject_name)
+        self.subjects = self.current_session.subjects
+        self.subject_button_list.set_state(subject_name, 'down')
+
+    def remove_behavior_button(self):
+        self.behavior_button_list.del_button_mode = not self.behavior_button_list.del_button_mode
+
+    def remove_transient_button(self):
+        self.transient_button_list.del_button_mode = not self.transient_button_list.del_button_mode
+
+    def _session_select_changed(self, instance, value):
+        names = [v.text for v in value]
+
+        if len(names) == 0:
+            self.subjects = []
+            self.current_session = None
+            return
+
+        selected_sessions = [s for s in self.sessions if s.name in names]
+        assert len(selected_sessions) == 1
+        self.current_session = selected_sessions[0]
+        self.subjects = self.current_session.subjects
+
+    def _subject_select_changed(self, instance, value):
+        if self.current_subject is not None: self.current_subject.workspace.save(self)
+        if len(value) == 0:
+            self.current_subject = None
+            self.blank_workspace.load(self)
+        else:
+            names = [v.text for v in value]
+            selected_subjects = [s for s in self.subjects if s.name in names]
+            assert len(selected_subjects) == 1
+            self.current_subject = selected_subjects[0]
+            self.current_subject.workspace.load(self)
+
+    def remove_session_button(self):
+        self.session_button_list.del_button_mode = not self.session_button_list.del_button_mode
+
+    def remove_subject_button(self):
+        self.subject_button_list.del_button_mode = not self.subject_button_list.del_button_mode
+
+    def _remove_session_callback(self, text):
+        if self.current_session is not None and self.current_session.name == text:
+            self.current_session = None
+            self.subjects = []
+        selected_sessions = [s for s in self.sessions if s.name == text]
+        assert len(selected_sessions) == 1
+        self.sessions.remove(selected_sessions[0])
+
+    def _remove_subject_callback(self, text):
+        if self.current_subject is not None and self.current_subject.name == text:
+            self.current_subject = None
+            self.blank_workspace.load(self)
+
+        selected_subjects = [s for s in self.subjects if s.name == text]
+        assert len(selected_subjects) == 1
+        self.current_session.remove_subject(selected_subjects[0])
+        self.subjects = self.current_session.subjects
+
+    def _remove_transient_callback(self, text):
+        self.transient_files = [t for t in self.transient_files if os.path.basename(t.source_file) != text]
+
+    def _remove_behavior_callback(self, text):
+        self.behavior_files = [t for t in self.behavior_files if os.path.basename(t.source_file) != text]
+
+
+    def _add_schema(self, filename):
+        if not os.path.isfile(filename) or not filename.endswith('.schema'): 
+            show_message("Sorry, this is not a valid schema file.")
+            return
+        self.schema = filename
+
+    def on_schema(self, instance, value):
+        if value is None:
+            self.behavior_box.schema_button.text = "Load Schema..."
+            self.behavior_box.schema_button.state = 'normal'
+        else:
+            self.behavior_box.schema_button.text = "Schema loaded."
+            self.behavior_box.schema_button.state = 'down'
+
+    def bout_id_export(self, series_labels):
+        if len(series_labels) == 0: 
+            show_message("No variables selected for export.")
+            return
+        LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'])
+        
+
+    def _bout_id_export_callback(self, series_labels, out_filename):
+        if len(series_labels) == 1:
+            self.series_controller.export_bouts(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
+        else:
+            outf_basename = os.path.splitext(out_filename)[0]
+            for label in series_labels:
+                suffix = ''.join([c for c in label if c.isalnum()])
+                self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
+
+    def transition_export(self, series_labels):
+        print "exporting transitions", series_labels
         pass
+
+    def event_export(self, series_labels):
+        print "exporting event matching", series_labels
+        pass
+
+class AskForTextPopup(Popup):
+
+    def __init__(self, title = "Selection", label = "Please provide a value.", callback = None, **kwargs):
+        assert callback is not None
+        self.callback = callback
+
+        kwargs['size_hint'] = (None, None)
+        kwargs['size'] = (300, 200)
+        kwargs['title'] = title
+        kwargs['content'] = AskForTextPopupContent(title = title, label = label, ok_callback = self._ok_callback, cancel_callback = self._cancel_callback)
+
+        super(AskForTextPopup, self).__init__(**kwargs)
+
+    def _ok_callback(self, text):
+        self.dismiss()
+        self.callback(text)
+
+    def _cancel_callback(self):
+        self.dismiss()
+
+class AskForTextPopupContent(Widget):
+    label = StringProperty("")
+    ok_callback = ObjectProperty(None)
+    cancel_callback = ObjectProperty(None)
+    text = StringProperty("")
+
+
 
 class BoutIDBox(BoxLayout):
     bout_threshold = NumericProperty(1.)
+    slider = ObjectProperty(None)
+    export_callback = ObjectProperty(None)
 
     def set_threshold(self, value):
         self.bout_threshold = value
         print value
+
+    def export_data(self):
+        selected = [v.text for v in self.listbox.variable_list.current_toggled]
+        if self.export_callback is not None:
+            self.export_callback(selected)
 
 
 class TransitionIDBox(BoxLayout):
@@ -288,6 +484,7 @@ class TransitionIDBox(BoxLayout):
     available_variables = ListProperty([])
     variable_pairs = ListProperty([])
     listbox = ObjectProperty(None)
+    slider = ObjectProperty(None)
 
     def set_threshold(self, value):
         self.transition_threshold = value
@@ -310,16 +507,35 @@ class TransitionIDBox(BoxLayout):
 
         self.variable_pairs.append((pick1, pick2))
 
+    def remove_button_callback(self):
+        self.listbox.variable_list.del_button_mode = not self.listbox.variable_list.del_button_mode
+
+    def export_data(self):
+        selected = [v.text for v in self.listbox.variable_list.current_toggled]
+        if self.export_callback is not None:
+            self.export_callback(selected)
+
 class EventMatchingBox(BoxLayout):
     before_threshold = NumericProperty(-2.)
     after_threshold = NumericProperty(2.)
+    ds = ObjectProperty(None)
 
     def set_before_threshold(self, value):
         self.before_threshold = value
 
     def set_after_threshold(self, value):
         self.after_threshold = value
+    
+    def export_data(self):
+        selected = [v.text for v in self.listbox.variable_list.current_toggled]
+        if self.export_callback is not None:
+            self.export_callback(selected)
 
+class BehaviorBox(BoxLayout):
+    load_schema_callback = ObjectProperty(None)
+    add_button_callback = ObjectProperty(None)
+    remove_button_callback = ObjectProperty(None)
+    schema_button = ObjectProperty(None)
 
 class VariablePairer(BoxLayout):
     current_pick_1 = ObjectProperty(None)
@@ -343,8 +559,11 @@ class VariablesList(GridLayout):
     current_buttons = ListProperty([])
     current_toggled = ListProperty([])
     current_radio_button = ObjectProperty(None)
-    preserve_button_state = BooleanProperty(False)
     radio_button_mode = BooleanProperty(False)
+    del_button_mode = BooleanProperty(False)
+
+    #defines a callback to be run when a button is deleted
+    remove_button_callback = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(VariablesList, self).__init__(**kwargs)
@@ -355,52 +574,82 @@ class VariablesList(GridLayout):
         for each in self.current_buttons:
             self.remove_widget(each)
         self.current_buttons = []
+        self.current_toggled = []
 
     def init_button_list(self, dt):
         self.populate_list()
 
-    def populate_list(self):
+    def populate_list(self, toggled_text = None):
+        if toggled_text is None: toggled_text = []
+        self.canvas.clear()
         self.clear_widgets()
         for each in self.variable_list:
-            variable_button = ToggleButton(text = each, on_press = self.button_press)
+            variable_button = ToggleButton(text = each, on_release = self.button_press)
             if self.radio_button_mode:
                 variable_button.group = self
+            print variable_button.text, variable_button.group
             self.add_widget(variable_button)
             self.current_buttons.append(variable_button)
-        if self.preserve_button_state:
-            self.restore_button_state()
         self.height = len(self.variable_list) * (self.row_default_height + self.spacing)
 
-    def restore_button_state(self):
-        for each in self.current_toggled:
-            for button in self.current_buttons:
-                if each.text == button.text:
-                    button.state = each.state
-        self.reset_current_toggled_list()
+        for label in toggled_text:
+            self.set_state(label, 'down')
 
-    def reset_current_toggled_list(self):
+    def deselect_all(self):
+        for b in self.current_buttons:
+            b.state = 'normal'
         self.current_toggled = []
-        for each in self.current_buttons:
-            if each.state == 'down':
-                self.current_toggled.append(each)
 
+    def on_radio_button_mode(self, instance, value):
+        if value:
+            self.deselect_all()
+            for each in self.current_buttons:
+                each.group = self
 
-    def button_press(instance, value):
-        if value.state == 'down':
-            value.parent.current_toggled.append(value)
-            if value.parent.radio_button_mode == True:
-                value.parent.current_radio_button = value
-        if value.state == 'normal':
-            value.parent.current_toggled.remove(value)
+    def on_del_button_mode(self, instance, value):
+        if value:
+            for each in self.current_buttons:
+                each.background_color = [1, 0, 0, 1]
+        else:
+            for each in self.current_buttons:
+                each.background_color = [1, 1, 1, 1]
+
+    def button_press(self, button):
+        if self.del_button_mode:
+            self.set_state(button.text, 'normal')
+            self.variable_list.remove(button.text)
+            self.del_button_mode = False
+            if self.remove_button_callback is not None: self.remove_button_callback(button.text)
+        elif button.state == 'down':
+            if self.radio_button_mode:
+                self.current_toggled = [button]
+            else:
+                self.current_toggled.append(button)
+        elif button.state == 'normal':
+            self.current_toggled.remove(button)
 
 
     def on_variable_list(self, instance, value):
+        toggled_text = [v.text for v in self.current_toggled]
         self.clear_list()
-        self.canvas.clear()
-        self.populate_list()
+        self.del_button_mode = False
+        self.populate_list(toggled_text = toggled_text)
 
-    def append_test(self, dt):
-        self.variable_list.append('6')
+    def set_state(self, label, state):
+        assert state in ['down', 'normal'], "State must be either 'down' or 'normal'"
+        
+        # this should not be necessary, but it is.
+        if state == 'down' and self.radio_button_mode: self.deselect_all()
+
+        for b in self.current_buttons:
+            if b.text == label:
+                b.state = state
+                if state == 'down' and b not in self.current_toggled: 
+                    if self.radio_button_mode:
+                        self.current_toggled = [b]
+                    else:
+                        self.current_toggled.append(b)
+                if state == 'normal' and b in self.current_toggled: self.current_toggled.remove(b)
 
 class VariablePairsBox(BoxLayout):
     layout = ObjectProperty(None)
@@ -431,23 +680,6 @@ class VariablePairsBox(BoxLayout):
 
         self.layout.add_widget(variable_pair)
         self.variable_pairs.append(variable_pair)
-        
-class ListBox(BoxLayout):
-    layout = ObjectProperty(None)
-    contents = ListProperty([])
-
-    def __init__(self, **kwargs):
-        super(ListBox, self).__init__(**kwargs)
-        Clock.schedule_interval(self.blah, 2.)
-
-    def blah(self, dt):
-        self.contents = ['hello', 'goodbye']
-
-    def on_contents(self, instance, value):
-        for s in self.contents:
-            assert isinstance(s, basestring)
-            self.layout.add_widget(ListItem(item_info = s))
-        self.layout.bind(minimum_height=self.layout.setter('height'))
 
 class VariableBox(BoxLayout):
     variable_list = ObjectProperty(None)
@@ -474,28 +706,29 @@ class VariablePair(BoxLayout):
         self.parent.remove_widget(self)
         self.parent_variable_box.variable_pairs.remove(self)
 
-class GetItemName(Widget):
-    ok = BooleanProperty(False)
+
+def show_message(text):
+    popup = MessagePopup(text=text)
+    popup.open()
+
+class MessagePopup(Popup):
+
+    def __init__(self, text = "", **kwargs):
+
+        kwargs['size_hint'] = (None, None)
+        kwargs['size'] = (300, 200)
+        kwargs['title'] = "Message"
+        kwargs['content'] = MessagePopupContent(text = text, ok_callback = self._ok_callback)
+
+        super(MessagePopup, self).__init__(**kwargs)
+
+    def _ok_callback(self):
+        self.dismiss()
+
+class MessagePopupContent(Widget):
+    ok_callback = ObjectProperty(None)
     text = StringProperty("")
 
-    def __init__(self, **kwargs):
-        super(GetItemName, self).__init__(**kwargs)
-
-class ListItem(BoxLayout):
-    item_info = StringProperty('')
-    item_state = StringProperty('normal')
-
-    def __init__(self, **kwargs):
-        super(ListItem, self).__init__(**kwargs)
-
-    def remove_item(self):
-        self.parent.remove_widget(self)
-        
-    def item_callback(self):
-        if self.item_state == 'normal':
-            self.item_state = 'down'
-        else:
-            self.item_state = 'normal'
 
 class LoadSave(Widget):
     ok = BooleanProperty(False)
@@ -503,18 +736,21 @@ class LoadSave(Widget):
     loadfile = ObjectProperty(None)
     savefile = ObjectProperty(None)
     text_input = ObjectProperty(None)
+    filters = ListProperty(None)
 
     def __init__(self, action=None, callback=None, **kwargs):
         super(LoadSave, self).__init__(**kwargs)
         self.callback = callback
         if action == 'load':
             self.show_load()
+        elif action == 'save':
+            self.show_save()
 
     def dismiss_popup(self):
         self._popup.dismiss()
 
     def show_load(self):
-        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
+        content = LoadDialog(filters = self.filters, load=self.load, cancel=self.dismiss_popup)
         self._popup = Popup(title="Load file", content=content, size_hint=(0.9, 0.9))
         self._popup.open()
 
@@ -528,7 +764,7 @@ class LoadSave(Widget):
         self.dismiss_popup()
 
     def save(self, path, filename):
-        self.callback(os.path.join(path, filename[0]))
+        self.callback(os.path.join(path, filename))
         self.dismiss_popup()
 
 class LoadDialog(FloatLayout):
@@ -536,11 +772,11 @@ class LoadDialog(FloatLayout):
     cancel = ObjectProperty(None)
     filechooser = ObjectProperty(None)
 
-    def __init__(self, **kwargs):
+    def __init__(self, filters = None, **kwargs):
         super(LoadDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
-        self.filechooser.filters = ['*.csv']
+        self.filechooser.filters = filters
         self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -558,9 +794,9 @@ class SaveDialog(FloatLayout):
 
 
 
-Factory.register('LoadSave', cls=LoadSave)
-Factory.register('LoadDialog', cls=LoadDialog)
-Factory.register('SaveDialog', cls=SaveDialog)
+# Factory.register('LoadSave', cls=LoadSave)
+# Factory.register('LoadDialog', cls=LoadDialog)
+# Factory.register('SaveDialog', cls=SaveDialog)
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp
