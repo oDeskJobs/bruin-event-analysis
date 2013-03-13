@@ -76,6 +76,7 @@ class MainView(Widget):
 
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
+    schema = StringProperty(None, allownone = True)
     sessions = ListProperty(None)
     current_session = ObjectProperty(None, allownone = True)
     subjects = ListProperty(None)
@@ -148,13 +149,19 @@ class MainView(Widget):
         if self.current_subject is None: 
             # need a warning dialog here
             return
-        LoadSave(action='load', callback=self._add_transient_file)
+        LoadSave(action='load', callback=self._add_transient_file, filters=['*.csv'])
 
     def prompt_for_behavior_file(self):
+        if self.current_subject is None or self.schema is None: 
+            # need a warning dialog here
+            return
+        LoadSave(action='load', callback=self._add_behavior_file, filters=['*.csv'])
+
+    def prompt_for_schema(self):
         if self.current_subject is None: 
             # need a warning dialog here
             return
-        LoadSave(action='load', callback=self._add_behavior_file)
+        LoadSave(action='load', callback=self._add_schema, filters=['*.schema'])
 
     def _add_transient_file(self, path):
         try:
@@ -201,13 +208,13 @@ class MainView(Widget):
                     self.series_controller.add_data(field, data, marker='plus', is_x_only = True)
 
     def _add_behavior_file(self, path):
-        schema_file = os.path.splitext(path)[0] + '.schema'
-        if not os.path.isfile(schema_file):
+        
+        if self.schema is None or not os.path.isfile(self.schema):
             print "No schema file present. Aborting."
             return
 
         try:
-            t = BehaviorDataFile(path, schema_file)
+            t = BehaviorDataFile(path, self.schema)
         except:
             print "Could not import %s as a behavior data file. Aborting." % (path,)
             # we will want to make this visible in a popup.
@@ -370,6 +377,16 @@ class MainView(Widget):
         self.current_session.remove_subject(selected_subjects[0])
         self.subjects = self.current_session.subjects
 
+    def _add_schema(self, filename):
+        if not os.path.isfile(filename): return
+        self.schema = filename
+
+    def on_schema(self, instance, value):
+        if value is None:
+            self.behavior_box.schema_button.text = "Load Schema..."
+        else:
+            self.behavior_box.schema_button.text = "Schema loaded."
+
 class AskForTextPopup(Popup):
 
     def __init__(self, title = "Selection", label = "Please provide a value.", callback = None, **kwargs):
@@ -449,6 +466,11 @@ class EventMatchingBox(BoxLayout):
     def set_after_threshold(self, value):
         self.after_threshold = value
 
+class BehaviorBox(BoxLayout):
+    load_schema_callback = ObjectProperty(None)
+    add_button_callback = ObjectProperty(None)
+    remove_button_callback = ObjectProperty(None)
+    schema_button = ObjectProperty(None)
 
 class VariablePairer(BoxLayout):
     current_pick_1 = ObjectProperty(None)
@@ -608,6 +630,7 @@ class LoadSave(Widget):
     loadfile = ObjectProperty(None)
     savefile = ObjectProperty(None)
     text_input = ObjectProperty(None)
+    filters = ListProperty(None)
 
     def __init__(self, action=None, callback=None, **kwargs):
         super(LoadSave, self).__init__(**kwargs)
@@ -619,7 +642,7 @@ class LoadSave(Widget):
         self._popup.dismiss()
 
     def show_load(self):
-        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
+        content = LoadDialog(filters = self.filters, load=self.load, cancel=self.dismiss_popup)
         self._popup = Popup(title="Load file", content=content, size_hint=(0.9, 0.9))
         self._popup.open()
 
@@ -641,11 +664,11 @@ class LoadDialog(FloatLayout):
     cancel = ObjectProperty(None)
     filechooser = ObjectProperty(None)
 
-    def __init__(self, **kwargs):
+    def __init__(self, filters = None, **kwargs):
         super(LoadDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
-        self.filechooser.filters = ['*.csv']
+        self.filechooser.filters = filters
         self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
 
 

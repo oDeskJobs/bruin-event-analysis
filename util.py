@@ -12,29 +12,30 @@ class Workspace(object):
     behavior_files = []
     selected_transient_filenames = []
     selected_behavior_filenames = []
+    schema = None
 
     selected_bout_variables = []
-    bout_threshold = 0
+    bout_threshold = 1.
 
     all_transition_variable_pairs = []
     selected_transition_variable_pairs = []
-    transition_threshold = 0
+    transition_threshold = 1.
 
     selected_event_matching_variables = []
-    event_matching_before_threshold = 0
-    event_matching_after_threshold = 0
+    event_matching_before_threshold = -2
+    event_matching_after_threshold = 2
 
-
+    visible_series = []
 
     def save(self, mainview_widget):
         m = mainview_widget
         
         self.transient_files = copy(m.transient_files)
-        print "saving transient files as ", self.transient_files
         self.selected_transient_filenames = [v.text for v in m.transient_button_list.current_toggled]
 
         self.behavior_files = copy(m.behavior_files)
         self.selected_behavior_filenames = [v.text for v in m.behavior_button_list.current_toggled]
+        self.schema = m.schema
 
         self.selected_bout_variables = [v.text for v in m.bout_id_button_list.current_toggled]
         self.bout_threshold = m.bout_id_box.bout_threshold
@@ -47,6 +48,8 @@ class Workspace(object):
         self.event_matching_before_threshold = m.event_box.before_threshold
         self.event_matching_after_threshold = m.event_box.after_threshold
 
+        self.visible_series = [v.text for v in m.legend_button_list.current_toggled]
+
     def load(self, mainview_widget):
         m = mainview_widget
 
@@ -56,7 +59,7 @@ class Workspace(object):
         for f in self.selected_transient_filenames:
             m.transient_button_list.set_state(f, 'down')
 
-
+        m.schema = self.schema
         m.behavior_files = self.behavior_files
         m.behavior_button_list.deselect_all()
         for f in self.selected_behavior_filenames:
@@ -83,6 +86,9 @@ class Workspace(object):
         m.event_box.ds.value = self.event_matching_before_threshold
         m.event_box.ds.value2 = self.event_matching_after_threshold
 
+        m.legend_button_list.deselect_all()
+        for f in self.visible_series:
+            m.legend_button_list.set_state(f, 'down')
 
 class Subject(object):
     def __init__(self, name):

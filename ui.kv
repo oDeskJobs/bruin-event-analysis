@@ -77,13 +77,11 @@
                         orientation: 'vertical'
                         spacing: grid_spacing
                         size_hint: (.5, 1)
-                        BoxWithHeader:
-                            radio_button_mode: False
+                        BehaviorBox:
                             id: behavior_box
-                            title: "Behavior"
-                            size_hint: (1,1)
                             add_button_callback: root.prompt_for_behavior_file
                             remove_button_callback: root.remove_behavior_button
+                            load_schema_callback: root.prompt_for_schema
 
 
         # layout containing the processing options
@@ -363,6 +361,52 @@
     VariableBox:
         id: listbox
         size_hint: (1,1)
+
+
+
+
+<BehaviorBox>:
+    listbox: listbox
+    schema_button: schema_button
+    orientation: 'vertical'
+    spacing: grid_spacing
+    padding: grid_spacing
+    size_hint: (1,1)
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: "Behavior"
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+        radio_button_mode: False
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Button:
+            id: schema_button
+            text: "Load Schema..."
+            font_size: 10
+            on_release: root.load_schema_callback()
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.add_button_callback()
+        Button:
+            background_normal: 'assets/minus32.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.remove_button_callback()
 
 <BoutIDBox>:
     listbox: listbox
