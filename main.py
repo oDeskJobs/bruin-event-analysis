@@ -622,6 +622,7 @@ class VariablesList(GridLayout):
             if self.remove_button_callback is not None: self.remove_button_callback(button.text)
         elif button.state == 'down':
             if self.radio_button_mode:
+                self.current_radio_button = button
                 self.current_toggled = [button]
             else:
                 self.current_toggled.append(button)
