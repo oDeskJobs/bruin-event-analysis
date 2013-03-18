@@ -417,7 +417,19 @@ class MainView(Widget):
             show_message("No variables selected for export.")
             return
         LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'])
-        
+
+    def transition_export(self, series_labels):
+        if len(series_labels) == 0: 
+            show_message("No variables selected for export.")
+            return
+        LoadSave(action='save', callback=partial(self._transition_export_callback, series_labels), filters=['*.csv'])
+
+    def event_export(self, series_labels):
+        if len(series_labels) == 0: 
+            show_message("No variables selected for export.")
+            return
+        LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'])
+
 
     def _bout_id_export_callback(self, series_labels, out_filename):
         if len(series_labels) == 1:
@@ -428,13 +440,23 @@ class MainView(Widget):
                 suffix = ''.join([c for c in label if c.isalnum()])
                 self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
 
-    def transition_export(self, series_labels):
-        print "exporting transitions", series_labels
-        pass
+    def _transition_export_callback(self, series_labels, out_filename):
+        if len(series_labels) == 1:
+            self.series_controller.export_transitions(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
+        else:
+            outf_basename = os.path.splitext(out_filename)[0]
+            for label in series_labels:
+                suffix = ''.join([c for c in label if c.isalnum()])
+                self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
 
-    def event_export(self, series_labels):
-        print "exporting event matching", series_labels
-        pass
+    def _event_export_callback(self, series_labels, out_filename):
+        if len(series_labels) == 1:
+            self.series_controller.export_events(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
+        else:
+            outf_basename = os.path.splitext(out_filename)[0]
+            for label in series_labels:
+                suffix = ''.join([c for c in label if c.isalnum()])
+                self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
 
 class AskForTextPopup(Popup):
 
@@ -622,6 +644,7 @@ class VariablesList(GridLayout):
             if self.remove_button_callback is not None: self.remove_button_callback(button.text)
         elif button.state == 'down':
             if self.radio_button_mode:
+                self.current_radio_button = button
                 self.current_toggled = [button]
             else:
                 self.current_toggled.append(button)

@@ -250,15 +250,45 @@ class SeriesController(Widget):
             v.col_highlights_distances = (None, None)
 
     def export_bouts(self, label, filename):
-        with open(filename, 'w') as inf:
-            csvwriter = csv.writer(inf)
+        with open(filename, 'w') as outf:
+            csvwriter = csv.writer(outf)
             csvwriter.writerow(['Bout ID', 'Start Time', 'End Time', 'Number of Events', 'Avg Inter-event time'])
             data_x = self.series_dict[label].data_x
             for idx, region in enumerate(self.series_dict[label].highlight_regions):
                 relevant_data = [x for x in data_x if region[0] <= x <= region[1]]
-                csvwriter.writerow([idx, region[0], region[1], len(relevant_data), 'NYI'])
+                inter_event_times = [t[1]-t[0] for t in zip(relevant_data,relevant_data[1:])]
+                avg_inter_event_time = sum(inter_event_times)/float(len(inter_event_times)) if len(inter_event_times) > 0 else None
+                csvwriter.writerow([idx, region[0], region[1], len(relevant_data), avg_inter_event_time])
 
+    def export_transitions(self, label, filename):
+        label1, label2 = [v.strip() for v in label.split('->')]
+        with open(filename, 'w') as outf:
+            csvwriter = csv.writer(outf)
+            csvwriter.writerow(['Transition ID', 'From Event', 'To Event Time', 'First Event Time', 'Second Event Time'])
+            for idx, time_range in enumerate(self.arrows[(label1, label2)].x_ranges):
+                csvwriter.writerow([idx, label1, label2, time_range[0], time_range[1]])
 
+    def export_events(self, label, filename):
+        with open(filename, 'w') as outf:
+            csvwriter = csv.writer(outf)
+            csvwriter.writerow(['DA transient Peak Time (s)','DA transient Amplitude (nM)',"Matched Event", "Matched Event Time", "Peak time after event"])
+            transient_x = self.series_dict['Transients'].data_x
+            transient_y = self.series_dict['Transients'].data_y
+            event_x = self.series_dict[label].data_x
+            before_dist, after_dist = self.series_dict[label].col_highlights_distances
+
+            for peak_time, amplitude in zip(transient_x, transient_y):
+                related_events = [x for x in event_x if x-abs(before_dist) <= peak_time <= x+abs(after_dist)]
+                if len(related_events) == 0:
+                    event_label = None
+                    matched_event = None
+                    time_diff = None
+                else:
+                    event_label = label
+                    matched_event = min(related_events, key = lambda k: abs(peak_time-k))
+                    time_diff = peak_time - matched_event
+
+                csvwriter.writerow([peak_time, amplitude, event_label, matched_event, time_diff])
 
 
 class ColorPalette(object):
