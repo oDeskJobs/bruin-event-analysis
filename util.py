@@ -264,21 +264,31 @@ class SeriesController(Widget):
         label1, label2 = [v.strip() for v in label.split('->')]
         with open(filename, 'w') as outf:
             csvwriter = csv.writer(outf)
-            csvwriter.writerow(['Transition ID', 'From Event', 'To Event Time', 'First Event Time', 'Second Event Time', ])
+            csvwriter.writerow(['Transition ID', 'From Event', 'To Event Time', 'First Event Time', 'Second Event Time'])
             for idx, time_range in enumerate(self.arrows[(label1, label2)].x_ranges):
                 csvwriter.writerow([idx, label1, label2, time_range[0], time_range[1]])
 
     def export_events(self, label, filename):
         with open(filename, 'w') as outf:
             csvwriter = csv.writer(outf)
-            csvwriter.writerow(['DA transient Peak Time (s)','DA transient Amplitude (nM)',"Matched Event","Time before event", "Time after event"])
+            csvwriter.writerow(['DA transient Peak Time (s)','DA transient Amplitude (nM)',"Matched Event", "Matched Event Time", "Peak time after event"])
             transient_x = self.series_dict['Transients'].data_x
             transient_y = self.series_dict['Transients'].data_y
             event_x = self.series_dict[label].data_x
             before_dist, after_dist = self.series_dict[label].col_highlights_distances
 
             for peak_time, amplitude in zip(transient_x, transient_y):
-                csvwriter.writerow([peak_time, amplitude, 'None', 0, 0])
+                related_events = [x for x in event_x if x-abs(before_dist) <= peak_time <= x+abs(after_dist)]
+                if len(related_events) == 0:
+                    event_label = None
+                    matched_event = None
+                    time_diff = None
+                else:
+                    event_label = label
+                    matched_event = min(related_events, key = lambda k: abs(peak_time-k))
+                    time_diff = peak_time - matched_event
+
+                csvwriter.writerow([peak_time, amplitude, event_label, matched_event, time_diff])
 
 
 class ColorPalette(object):
