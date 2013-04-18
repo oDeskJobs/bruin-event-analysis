@@ -10,6 +10,7 @@ from kivy.factory import Factory
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.clock import Clock
+from kivy.config import Config
 
 from double_slider import DoubleSlider
 from data_models import TransientDataFile, BehaviorDataFile
@@ -19,7 +20,8 @@ import os
 from functools import partial
 
 Builder.load_file('ui.kv')
-
+Config.set('graphics', 'width', '1200')
+Config.set('graphics', 'height', '800')
 
 def get_bout_regions_from_xy_data(data, bout_threshold = 1.):
     sorted_data = sorted(data, key=lambda x: x[0])
@@ -183,6 +185,7 @@ class MainView(Widget):
             return
 
         self.transient_files.append(t)
+        self.transient_button_list.set_state(os.path.basename(t.source_file), 'down')
 
     def on_transient_files(self, instance, value):
         self.transient_button_list.variable_list = [os.path.basename(t.source_file) for t in self.transient_files]
@@ -224,7 +227,6 @@ class MainView(Widget):
             t = BehaviorDataFile(path, self.schema)
         except:
             show_message("Could not import this file as a behavior data file. Aborting.")
-            # we will want to make this visible in a popup.
             return
 
         if os.path.basename(t.source_file) in [os.path.basename(x.source_file) for x in self.behavior_files]:
@@ -232,18 +234,8 @@ class MainView(Widget):
             return
 
         self.behavior_files.append(t)
-        return
-        # right here we need to create a series FOR EACH VARIABLE, and have them go down to the legend pane.
-        s = Series(self.visualizer, fill_color = color_palette.get_color(t.source_file), marker = 'plus', tick_height = 20, tick_width = 5)
-        # we definitely want a better way of handling Boolean data than just assigning it a hardcoded y value like this
-        data = [(p[0], 50) for p in t.get_xy_pairs(x='Left Lever Press')]
-        print data
-        s.data = data
-        s.source_file = t.source_file
-
-        self.behavior_series.append(s)
-        self.behavior_files.append(t)
-
+        self.behavior_button_list.set_state(os.path.basename(t.source_file), 'down')
+        
 
     def _all_variables_changed(self, instance, value):
         self.bout_id_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients"]
