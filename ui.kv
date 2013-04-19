@@ -411,6 +411,7 @@
             on_release: root.remove_button_callback()
 
 <BoutIDBox>:
+    single_event_checkbox: single_event_checkbox
     listbox: listbox
     slider: sl1
     orientation: 'vertical'
@@ -447,6 +448,14 @@
         height: 32
         padding: grid_spacing
         orientation: 'horizontal'
+        CheckBox:
+            id: single_event_checkbox
+            active: True
+            size_hint:(None, None)
+            size: (60, 24)
+        Label:
+            text: "Single Events are Bouts"
+            on_touch_down: self.collide_point(*args[1].pos) and root.toggle_checkbox()
         Widget:
             size_hint: (1,1)
         Button:

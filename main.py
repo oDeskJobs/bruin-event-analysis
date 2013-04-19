@@ -482,6 +482,10 @@ class BoutIDBox(BoxLayout):
     bout_threshold = NumericProperty(1.)
     slider = ObjectProperty(None)
     export_callback = ObjectProperty(None)
+    single_event_checkbox = ObjectProperty(None)
+
+    def toggle_checkbox(self):
+        self.single_event_checkbox.active = not self.single_event_checkbox.active
 
     def set_threshold(self, value):
         self.bout_threshold = value
