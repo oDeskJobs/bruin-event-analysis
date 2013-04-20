@@ -23,7 +23,7 @@ Builder.load_file('ui.kv')
 Config.set('graphics', 'width', '1200')
 Config.set('graphics', 'height', '800')
 
-def get_bout_regions_from_xy_data(data, bout_threshold = 1.):
+def get_bout_regions_from_xy_data(data, bout_threshold = 1., single_events_are_bouts = True):
     sorted_data = sorted(data, key=lambda x: x[0])
     in_bout = False
     current_bout_start = 0
@@ -37,7 +37,19 @@ def get_bout_regions_from_xy_data(data, bout_threshold = 1.):
         elif in_bout and not within_threshold:
             bouts.append((current_bout_start, x1[0]))
             in_bout = False
+        elif single_events_are_bouts and not in_bout and not within_threshold:
+            if len(bouts) == 0 or x1[0] not in bouts[-1]: bouts.append((x1[0], x1[0]))
+
+        # if x2 == sorted_data[-1]:
         x1 = x2
+
+    # special logic for last event
+    if in_bout:
+        bouts.append((current_bout_start, x2[0]))
+    elif single_events_are_bouts:
+        bouts.append((x2[0], x2[0]))
+
+
 
     return bouts
 
@@ -117,6 +129,7 @@ class MainView(Widget):
         self.bout_id_button_list = self.bout_id_box.listbox.variable_list
         self.bout_id_button_list.bind(current_toggled=self._bout_id_params_changed)
         self.bout_id_box.bind(bout_threshold=self._bout_id_params_changed)
+        self.bout_id_box.bind(single_events_are_bouts=self._bout_id_params_changed)
         self.bout_id_box.export_callback = self.bout_id_export
 
         self.transition_button_list = self.transition_box.listbox.variable_list
@@ -276,7 +289,8 @@ class MainView(Widget):
         for t in self.bout_id_box.listbox.variable_list.current_toggled:
             label = t.text
             data = self.series_controller.get_data(label)
-            bouts = get_bout_regions_from_xy_data(data, bout_threshold = self.bout_id_box.bout_threshold)
+            bouts = get_bout_regions_from_xy_data(data, bout_threshold = self.bout_id_box.bout_threshold, 
+                    single_events_are_bouts = self.bout_id_box.single_event_checkbox.active)
             print "Identified bouts for series %s:" % (label,), bouts
             self.series_controller.add_highlights(t.text, bouts)
 
@@ -483,9 +497,11 @@ class BoutIDBox(BoxLayout):
     slider = ObjectProperty(None)
     export_callback = ObjectProperty(None)
     single_event_checkbox = ObjectProperty(None)
+    single_events_are_bouts = BooleanProperty(True)
 
     def toggle_checkbox(self):
         self.single_event_checkbox.active = not self.single_event_checkbox.active
+        self.single_events_are_bouts = self.single_event_checkbox.active
 
     def set_threshold(self, value):
         self.bout_threshold = value

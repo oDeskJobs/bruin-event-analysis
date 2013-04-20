@@ -216,8 +216,8 @@ class Series(Widget):
             start, end = highlight_range
             assert self.data_extents[1] == self.data_extents[3], "Highlights only work with x_only data."
             y_center = self.data_extents[1]
-            begin_point = [int(v) for v in self.plot.to_display_point(start, y_center)]
-            end_point = [int(v) for v in self.plot.to_display_point(end, y_center)]
+            begin_point = [int(v)-2 for v in self.plot.to_display_point(start, y_center)]
+            end_point = [int(v)+2 for v in self.plot.to_display_point(end, y_center)]
 
             self.highlights.add(Rectangle(pos = (begin_point[0], begin_point[1] - highlight_height/2) , size = (end_point[0] - begin_point[0], highlight_height)))
 
