@@ -21,7 +21,7 @@ from functools import partial
 
 Builder.load_file('ui.kv')
 Config.set('graphics', 'width', '1200')
-Config.set('graphics', 'height', '800')
+Config.set('graphics', 'height', '700')
 
 def get_bout_regions_from_xy_data(data, bout_threshold = 1., single_events_are_bouts = True):
     sorted_data = sorted(data, key=lambda x: x[0])
@@ -58,8 +58,6 @@ def get_transitions_from_xy_data_obselete(data1, data2, threshold = 1.):
     _data_dict2 = {k[0]:2 if k not in data1 else 3 for k in data2}
     data_dict.update(_data_dict2)
     all_keys = sorted(data_dict.keys())
-    print data_dict
-    print all_keys
     
     cursor_in_data1 = False
     cursor_not_in_data1_until = 0
@@ -236,6 +234,7 @@ class MainView(Widget):
         self.subject_button_list.variable_list = [str(x) for x in self.subjects]
 
     def _transient_select_changed(self, instance, value):
+        print "transient select changed"
         selected_basenames = [v.text for v in value]
         self.series_controller.clear(label = 'Transients')
         for t in self.transient_files:
@@ -245,7 +244,6 @@ class MainView(Widget):
 
     def _behavior_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
-        
         self.series_controller.clear(except_label = 'Transients')
         for s in self.behavior_files:
             if os.path.basename(s.source_file) in selected_basenames:
@@ -314,7 +312,6 @@ class MainView(Widget):
             data = self.series_controller.get_data(label)
             bouts = get_bout_regions_from_xy_data(data, bout_threshold = self.bout_id_box.bout_threshold, 
                     single_events_are_bouts = self.bout_id_box.single_event_checkbox.active)
-            print "Identified bouts for series %s:" % (label,), bouts
             self.series_controller.add_highlights(t.text, bouts)
 
     def calculate_transitions(self, *largs):
@@ -324,7 +321,6 @@ class MainView(Widget):
             label1, label2 = [v.strip() for v in t.text.split('->')]
             data1, data2 = [self.series_controller.get_data(l) for l in (label1, label2)]
             transitions = get_transitions_from_xy_data(data1, data2, threshold = self.transition_box.transition_threshold)
-            print "Identified transitions for series %s:" % (t.text,), transitions
             self.series_controller.add_arrows(label1, label2, transitions)
 
     def calculate_event_matches(self, *largs):
@@ -333,7 +329,6 @@ class MainView(Widget):
             label = t.text
             before_dist = self.event_box.before_threshold
             after_dist = self.event_box.after_threshold
-            print before_dist, after_dist
             self.series_controller.add_col_highlights(label, -before_dist, after_dist)
 
     def add_subject(self):
@@ -386,9 +381,11 @@ class MainView(Widget):
 
     def _subject_select_changed(self, instance, value):
         if self.current_subject is not None: self.current_subject.workspace.save(self)
+        
         if len(value) == 0:
             self.current_subject = None
             self.blank_workspace.load(self)
+
         else:
             names = [v.text for v in value]
             selected_subjects = [s for s in self.subjects if s.name in names]
@@ -413,6 +410,7 @@ class MainView(Widget):
     def _remove_subject_callback(self, text):
         if self.current_subject is not None and self.current_subject.name == text:
             self.current_subject = None
+            
             self.blank_workspace.load(self)
 
         selected_subjects = [s for s in self.subjects if s.name == text]
@@ -442,50 +440,76 @@ class MainView(Widget):
             self.behavior_box.schema_button.state = 'down'
 
     def bout_id_export(self, series_labels):
-        if len(series_labels) == 0: 
-            show_message("No variables selected for export.")
-            return
+        # if len(series_labels) == 0: 
+        #     # TODO needs to check ALL sessions/subjects
+        #     show_message("No variables selected for export.")
+        #     return
         LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'])
 
     def transition_export(self, series_labels):
         if len(series_labels) == 0: 
+            # TODO needs to check ALL sessions/subjects
             show_message("No variables selected for export.")
             return
         LoadSave(action='save', callback=partial(self._transition_export_callback, series_labels), filters=['*.csv'])
 
     def event_export(self, series_labels):
         if len(series_labels) == 0: 
+            # TODO needs to check ALL sessions/subjects
             show_message("No variables selected for export.")
             return
         LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'])
 
 
     def _bout_id_export_callback(self, series_labels, out_filename):
-        if len(series_labels) == 1:
-            self.series_controller.export_bouts(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
-        else:
-            outf_basename = os.path.splitext(out_filename)[0]
-            for label in series_labels:
-                suffix = ''.join([c for c in label if c.isalnum()])
-                self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
+        
+        try:
+            current_workspace = self.current_subject.workspace
+        except AttributeError:
+            current_workspace = None
+
+        for session in self.sessions:
+            for subject in session.subjects:
+                subject.workspace.load(self)
+                outf_basename = os.path.splitext(out_filename)[0] + '_' + str(session) + '_' + str(subject)
+                for label in series_labels:
+                    suffix = ''.join([c for c in label if c.isalnum()])
+                    self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
+
+        if current_workspace:
+            current_workspace.load(self)
 
     def _transition_export_callback(self, series_labels, out_filename):
-        if len(series_labels) == 1:
-            self.series_controller.export_transitions(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
-        else:
-            outf_basename = os.path.splitext(out_filename)[0]
-            for label in series_labels:
-                suffix = ''.join([c for c in label if c.isalnum()])
-                self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
+        try:
+            current_workspace = self.current_subject.workspace
+        except AttributeError:
+            current_workspace = None
+
+        for session in self.sessions:
+            for subject in session.subjects:
+                subject.workspace.load(self)
+                outf_basename = os.path.splitext(out_filename)[0] + '_' + str(session) + '_' + str(subject)
+                for label in series_labels:
+                    suffix = ''.join([c for c in label if c.isalnum()])
+                    self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
+        if current_workspace:
+            current_workspace.load(self)
 
     def _event_export_callback(self, series_labels, out_filename):
-        if len(series_labels) == 1:
-            self.series_controller.export_events(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
-        else:
-            outf_basename = os.path.splitext(out_filename)[0]
-            for label in series_labels:
-                suffix = ''.join([c for c in label if c.isalnum()])
-                self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
+        try:
+            current_workspace = self.current_subject.workspace
+        except AttributeError:
+            current_workspace = None
+
+        for session in self.sessions:
+            for subject in session.subjects:
+                subject.workspace.load(self)
+                outf_basename = os.path.splitext(out_filename)[0] + '_' + str(session) + '_' + str(subject)
+                for label in series_labels:
+                    suffix = ''.join([c for c in label if c.isalnum()])
+                    self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
+        if current_workspace:
+            current_workspace.load(self)
 
 class AskForTextPopup(Popup):
 
@@ -528,7 +552,6 @@ class BoutIDBox(BoxLayout):
 
     def set_threshold(self, value):
         self.bout_threshold = value
-        print value
 
     def export_data(self):
         selected = [v.text for v in self.listbox.variable_list.current_toggled]
@@ -545,7 +568,6 @@ class TransitionIDBox(BoxLayout):
 
     def set_threshold(self, value):
         self.transition_threshold = value
-        print value
 
     def add_variable_pair(self):
         variable_pairer = VariablePairer(self.available_variables)
@@ -644,7 +666,6 @@ class VariablesList(GridLayout):
             variable_button = ToggleButton(text = each, on_release = self.button_press)
             if self.radio_button_mode:
                 variable_button.group = self
-            print variable_button.text, variable_button.group
             self.add_widget(variable_button)
             self.current_buttons.append(variable_button)
         self.height = len(self.variable_list) * (self.row_default_height + self.spacing)

@@ -35,31 +35,29 @@ class Workspace(object):
 
         self.behavior_files = copy(m.behavior_files)
         self.selected_behavior_filenames = [v.text for v in m.behavior_button_list.current_toggled]
-        self.schema = m.schema
 
         self.selected_bout_variables = [v.text for v in m.bout_id_button_list.current_toggled]
-        self.bout_threshold = m.bout_id_box.bout_threshold
+        # self.bout_threshold = m.bout_id_box.bout_threshold
 
         self.all_transition_variable_pairs = list(m.transition_button_list.variable_list)
         self.selected_transition_variable_pairs = [v.text for v in m.transition_button_list.current_toggled]
-        self.transition_threshold = m.transition_box.transition_threshold
+        # self.transition_threshold = m.transition_box.transition_threshold
 
         self.selected_event_matching_variables = [v.text for v in m.event_button_list.current_toggled]
-        self.event_matching_before_threshold = m.event_box.before_threshold
-        self.event_matching_after_threshold = m.event_box.after_threshold
+        # self.event_matching_before_threshold = m.event_box.before_threshold
+        # self.event_matching_after_threshold = m.event_box.after_threshold
 
         self.visible_series = [v.text for v in m.legend_button_list.current_toggled]
 
     def load(self, mainview_widget):
         m = mainview_widget
-
+        m.series_controller.clear()
         print "setting transient files to ", self.transient_files
         m.transient_files = self.transient_files
         m.transient_button_list.deselect_all()
         for f in self.selected_transient_filenames:
             m.transient_button_list.set_state(f, 'down')
 
-        m.schema = self.schema
         m.behavior_files = self.behavior_files
         m.behavior_button_list.deselect_all()
         for f in self.selected_behavior_filenames:
@@ -72,19 +70,19 @@ class Workspace(object):
         m.bout_id_button_list.deselect_all()
         for f in self.selected_bout_variables:
             m.bout_id_button_list.set_state(f, 'down')
-        m.bout_id_box.slider.value = self.bout_threshold
+        # m.bout_id_box.slider.value = self.bout_threshold
 
         m.transition_button_list.variable_list =  self.all_transition_variable_pairs
         m.transition_button_list.deselect_all()
         for f in self.selected_transition_variable_pairs:
             m.transition_button_list.set_state(f, 'down')
-        m.transition_box.slider.value = self.transition_threshold
+        # m.transition_box.slider.value = self.transition_threshold
 
         m.event_button_list.deselect_all()
         for f in self.selected_event_matching_variables:
             m.event_button_list.set_state(f, 'down')
-        m.event_box.ds.value = self.event_matching_before_threshold
-        m.event_box.ds.value2 = self.event_matching_after_threshold
+        # m.event_box.ds.value = self.event_matching_before_threshold
+        # m.event_box.ds.value2 = self.event_matching_after_threshold
 
         m.legend_button_list.deselect_all()
         for f in self.visible_series:
@@ -108,9 +106,7 @@ class Session(object):
         self.subjects.append(Subject(subject_name))
 
     def remove_subject(self, subject):
-        print self.subjects
         self.subjects.remove(subject)
-        print self.subjects
 
     def __str__(self):
         return self.name
@@ -161,7 +157,7 @@ class SeriesController(Widget):
         all_y_hints = self.x_only_field_y_hints[len(enabled_x_only_fields)]
         series_y_hint = all_y_hints[enabled_x_only_fields.index(label)]
         series_y = self.visualizer.viewport[1] + series_y_hint*(self.visualizer.viewport[3] - self.visualizer.viewport[1])
-        print [(t[0], series_y) for t in xy_data]
+        # print [(t[0], series_y) for t in xy_data]
         return [(t[0], series_y) for t in xy_data]
 
 
@@ -185,6 +181,10 @@ class SeriesController(Widget):
                 if each != except_label:
                     self.series_dict[each].data = []
             self.all_variables_list = [except_label] if except_label in self.all_variables_list else []
+        else:
+            for each in self.all_variables_list:
+                self.series_dict[each].data = []
+                self.all_variables_list = []
 
     def update_visible_series(self, list_of_labels):
         for label in self.series_dict.keys():

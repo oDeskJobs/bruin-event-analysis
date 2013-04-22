@@ -89,16 +89,12 @@ class ArrowList(Widget):
             x2, y2 = [int(v) for v in self.plot.to_display_point(x_end, y_end)]
 
             self.arrows.add(Arrow([x1, y1, x2, y2], line_width = 3, head_length = 10))
-            print "success"
-
         self.arrows.add(PopMatrix())
 
     def _set_pos(self, instance, value):
-        print 'setting pos', value
         self.pos = value
 
     def _set_size(self, instance, value):
-        print 'setting size', value
         self.size = value
 
     def on_pos(self, instance, value):
@@ -158,7 +154,6 @@ class Series(Widget):
 
     def resize_plot_from_data(self):
         self.plot.viewport = self.data_extents
-        print self.data_extents
         self.draw()
 
     def on_data(self, instance, value):
@@ -170,11 +165,9 @@ class Series(Widget):
         self.draw()
 
     def on_highlight_regions(self, instance, value):
-        print "redrawing with regions", self.highlight_regions
         self.draw()
 
     def on_col_highlights_distances(self, instance, value):
-        print "redrawing with column highlights at", self.col_highlights_distances
         self.draw()
 
     def draw(self, *largs):
@@ -249,11 +242,9 @@ class Series(Widget):
 
 
     def _set_pos(self, instance, value):
-        print 'setting pos', value
         self.pos = value
 
     def _set_size(self, instance, value):
-        print 'setting size', value
         self.size = value
 
     def on_pos(self, instance, value):
@@ -349,7 +340,6 @@ class Plot(Widget):
         self.ticks.add(PopMatrix())
 
     def draw_border(self):
-        print "drawing border, pos is", self.pos, "bottom margin is ", self.bottom_margin
         self.border.clear()
         self.border.add(PushMatrix())
         self.border.add(Color(*self.border_color, mode='rgb'))

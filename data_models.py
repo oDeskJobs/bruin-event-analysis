@@ -111,6 +111,7 @@ class BehaviorDataFile(object):
 
 
     def read(self, source_file):
+        self.data = {}
         all_lines = []
         with open(source_file, 'r') as inf:
             csv_reader = csv.reader(inf, delimiter = ",")
