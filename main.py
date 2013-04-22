@@ -53,7 +53,7 @@ def get_bout_regions_from_xy_data(data, bout_threshold = 1., single_events_are_b
 
     return bouts
 
-def get_transitions_from_xy_data(data1, data2, threshold = 1.):
+def get_transitions_from_xy_data_obselete(data1, data2, threshold = 1.):
     data_dict = {k[0]: 1 for k in data1}
     _data_dict2 = {k[0]:2 if k not in data1 else 3 for k in data2}
     data_dict.update(_data_dict2)
@@ -72,6 +72,29 @@ def get_transitions_from_xy_data(data1, data2, threshold = 1.):
             cursor_not_in_data1_until = x2 + threshold
             cursor_in_data1 = False
         elif data_dict[x2] == 1 and x2 > cursor_not_in_data1_until:
+            cursor_in_data1 = True
+        x1 = x2
+
+    return transitions
+
+def get_transitions_from_xy_data(data1, data2, threshold = 1.):
+    data_dict = {k[0]: 1 for k in data1}
+    _data_dict2 = {k[0]: 2 if k not in data1 else 3 for k in data2}
+    data_dict.update(_data_dict2)
+    all_keys = sorted(data_dict.keys())
+    print data_dict
+    print all_keys
+    
+    cursor_in_data1 = False
+    cursor_not_in_data1_until = 0
+    transitions = []
+
+    for x2 in all_keys:
+        if data_dict[x2] != 1:
+            if cursor_in_data1 and x2 - threshold <= x1:
+                transitions.append((x1,x2))
+            cursor_in_data1 = False
+        elif data_dict[x2] == 1:
             cursor_in_data1 = True
         x1 = x2
 
