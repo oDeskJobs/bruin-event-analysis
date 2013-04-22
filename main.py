@@ -114,6 +114,7 @@ class MainView(Widget):
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
     schema = StringProperty(None, allownone = True)
+    transient_schema = StringProperty(None, allownone = True)
     sessions = ListProperty(None)
     current_session = ObjectProperty(None, allownone = True)
     subjects = ListProperty(None)
@@ -208,6 +209,12 @@ class MainView(Widget):
             show_message("You must choose a subject before importing files.")
             return
         LoadSave(action='load', callback=self._add_schema, filters=['*.schema'], path = self.filechooser_path)
+
+    def prompt_for_transient_schema(self):
+        if self.current_subject is None: 
+            show_message("You must choose a subject before importing files.")
+            return
+        LoadSave(action='load', callback=self._add_transient_schema, filters=['*.schema'], path = self.filechooser_path)
 
     def _add_transient_file(self, directory, name):
         self.filechooser_path = directory
@@ -441,6 +448,14 @@ class MainView(Widget):
             return
         self.schema = filename
 
+    def _add_transient_schema(self, directory, name):
+        self.filechooser_path = directory
+        filename = os.path.join(directory, name)
+        if not os.path.isfile(filename) or not filename.endswith('.schema'): 
+            show_message("Sorry, this is not a valid schema file.")
+            return
+        self.transient_schema = filename
+
     def on_schema(self, instance, value):
         if value is None:
             self.behavior_box.schema_button.text = "Load Schema..."
@@ -448,6 +463,14 @@ class MainView(Widget):
         else:
             self.behavior_box.schema_button.text = "Schema loaded."
             self.behavior_box.schema_button.state = 'down'
+
+    def on_transient_schema(self, instance, value):
+        if value is None:
+            self.transient_box.schema_button.text = "Load Schema..."
+            self.transient_box.schema_button.state = 'normal'
+        else:
+            self.transient_box.schema_button.text = "Schema loaded."
+            self.transient_box.schema_button.state = 'down'
 
     def bout_id_export(self, series_labels):
         #TODO add better checks here
@@ -628,6 +651,13 @@ class EventMatchingBox(BoxLayout):
             self.export_callback(selected)
 
 class BehaviorBox(BoxLayout):
+    load_schema_callback = ObjectProperty(None)
+    add_button_callback = ObjectProperty(None)
+    remove_button_callback = ObjectProperty(None)
+    schema_button = ObjectProperty(None)
+
+class TransientBox(BoxLayout):
+    # This REALLY ought to be refactored into the same class as BehaviorBox. Pretty embarrassing.
     load_schema_callback = ObjectProperty(None)
     add_button_callback = ObjectProperty(None)
     remove_button_callback = ObjectProperty(None)
