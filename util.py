@@ -134,7 +134,7 @@ class SeriesController(Widget):
         self.visualizer.bind(viewport = self.viewport_changed)
         self.color_palette = ColorPalette()
 
-    def add_data(self, label, xy_data, marker = 'tick', is_x_only = False):
+    def add_data(self, label, xy_data, marker = 'tick', is_x_only = False, replace_previous_data = False):
         if len(xy_data) == 0: return
         # if label is new, make a new series
         if label not in self.series_dict.keys():
@@ -142,7 +142,7 @@ class SeriesController(Widget):
             self.series_dict[label] = s
             if is_x_only and label not in self.x_only_fields: self.x_only_fields.append(label)
         t = self.series_dict[label]
-        if t.data is None: t.data = []
+        if t.data is None or replace_previous_data: t.data = []
         if is_x_only: 
             t.data = t.data + self.reshape_x_only_data(label, xy_data)
         else:
@@ -171,7 +171,7 @@ class SeriesController(Widget):
             if not t.data: continue
             t.data = self.reshape_x_only_data(label, t.data)
 
-    def clear(self, label = None, except_label = None):
+    def clear(self, label = None, except_label = None, startswith = None):
         # use clear(label=name) to clear a given column, or use clear(except_label=name) to remove all columns *except* a given column
         if label is not None:
             if label in self.series_dict: self.series_dict[label].data = []
@@ -181,6 +181,11 @@ class SeriesController(Widget):
                 if each != except_label:
                     self.series_dict[each].data = []
             self.all_variables_list = [except_label] if except_label in self.all_variables_list else []
+        elif startswith is not None:
+            for label in self.all_variables_list[:]:
+                if label.startswith(startswith):
+                    self.series_dict[label].data = []
+                    self.all_variables_list.remove(label)
         else:
             for each in self.all_variables_list:
                 self.series_dict[each].data = []

@@ -272,7 +272,7 @@ class MainView(Widget):
         
 
     def _all_variables_changed(self, instance, value):
-        self.bout_id_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients"]
+        self.bout_id_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients" and not v.startswith("Bouts:")]
         self.event_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients"]
         self.legend_box.listbox.variable_list.variable_list = sorted(value, key=self.label_sort_func)
         self.transition_box.available_variables = sorted(value, key=self.label_sort_func)
@@ -307,11 +307,14 @@ class MainView(Widget):
 
     def calculate_bouts(self, *largs):
         self.series_controller.clear_highlights()
+        # self.series_controller.clear(startswith = 'Bouts:')
         for t in self.bout_id_box.listbox.variable_list.current_toggled:
             label = t.text
             data = self.series_controller.get_data(label)
             bouts = get_bout_regions_from_xy_data(data, bout_threshold = self.bout_id_box.bout_threshold, 
                     single_events_are_bouts = self.bout_id_box.single_event_checkbox.active)
+            # add bout data to series controller for event matching
+            self.series_controller.add_data("Bouts: " + label, [(b[0], None) for b in bouts], marker='plus', is_x_only = True, replace_previous_data = True)
             self.series_controller.add_highlights(t.text, bouts)
 
     def calculate_transitions(self, *largs):
@@ -440,23 +443,25 @@ class MainView(Widget):
             self.behavior_box.schema_button.state = 'down'
 
     def bout_id_export(self, series_labels):
-        # if len(series_labels) == 0: 
-        #     # TODO needs to check ALL sessions/subjects
-        #     show_message("No variables selected for export.")
-        #     return
+        #TODO add better checks here
+        if len(series_labels) == 0: 
+            show_message("No variables selected for export.")
+            return
         LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'])
 
     def transition_export(self, series_labels):
+        #TODO add better checks here
         if len(series_labels) == 0: 
-            # TODO needs to check ALL sessions/subjects
             show_message("No variables selected for export.")
             return
         LoadSave(action='save', callback=partial(self._transition_export_callback, series_labels), filters=['*.csv'])
 
     def event_export(self, series_labels):
         if len(series_labels) == 0: 
-            # TODO needs to check ALL sessions/subjects
             show_message("No variables selected for export.")
+            return
+        elif 'Transients' not in self.series_controller.all_variables_list:
+            show_message("Please import transient data before running event matching.")
             return
         LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'])
 
