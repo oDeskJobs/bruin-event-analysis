@@ -23,6 +23,8 @@ Builder.load_file('ui.kv')
 Config.set('graphics', 'width', '1200')
 Config.set('graphics', 'height', '700')
 
+
+
 def get_bout_regions_from_xy_data(data, bout_threshold = 1., single_events_are_bouts = True):
     sorted_data = sorted(data, key=lambda x: x[0])
     in_bout = False
@@ -116,7 +118,6 @@ class MainView(Widget):
     current_session = ObjectProperty(None, allownone = True)
     subjects = ListProperty(None)
     current_subject = ObjectProperty(None, allownone = True)
-
     legend_width = NumericProperty(300)
 
     def __init__(self, **kwargs):
@@ -164,6 +165,7 @@ class MainView(Widget):
         self.event_box.bind(after_threshold=self._event_params_changed)
         self.event_box.export_callback = self.event_export
 
+        self.filechooser_path = os.path.dirname(os.path.realpath(__file__))
         
         self.session_box.listbox.variable_list.variable_list = []
         self.subject_box.listbox.variable_list.variable_list = []
@@ -190,7 +192,7 @@ class MainView(Widget):
         if self.current_subject is None: 
             show_message("You must choose a subject before importing files.")
             return
-        LoadSave(action='load', callback=self._add_transient_file, filters=['*.csv'])
+        LoadSave(action='load', callback=self._add_transient_file, filters=['*.csv'], path = self.filechooser_path)
 
     def prompt_for_behavior_file(self):
         if self.current_subject is None: 
@@ -199,15 +201,17 @@ class MainView(Widget):
         if self.schema is None:
             show_message("You must choose a schema before importing a behavior file.")
             return
-        LoadSave(action='load', callback=self._add_behavior_file, filters=['*.csv'])
+        LoadSave(action='load', callback=self._add_behavior_file, filters=['*.csv'], path = self.filechooser_path)
 
     def prompt_for_schema(self):
         if self.current_subject is None: 
             show_message("You must choose a subject before importing files.")
             return
-        LoadSave(action='load', callback=self._add_schema, filters=['*.schema'])
+        LoadSave(action='load', callback=self._add_schema, filters=['*.schema'], path = self.filechooser_path)
 
-    def _add_transient_file(self, path):
+    def _add_transient_file(self, directory, name):
+        self.filechooser_path = directory
+        path = os.path.join(directory, name)
         try:
             t = TransientDataFile(path)
         except:
@@ -251,7 +255,9 @@ class MainView(Widget):
                     data = [p for p in s.get_xy_pairs(x=field)]
                     self.series_controller.add_data(field, data, marker='plus', is_x_only = True)
 
-    def _add_behavior_file(self, path):
+    def _add_behavior_file(self, directory, name):
+        self.filechooser_path = directory
+        path = os.path.join(directory, name)
         
         if self.schema is None or not os.path.isfile(self.schema):
             print "No schema file present. Aborting."
@@ -427,8 +433,9 @@ class MainView(Widget):
     def _remove_behavior_callback(self, text):
         self.behavior_files = [t for t in self.behavior_files if os.path.basename(t.source_file) != text]
 
-
-    def _add_schema(self, filename):
+    def _add_schema(self, directory, name):
+        self.filechooser_path = directory
+        filename = os.path.join(directory, name)
         if not os.path.isfile(filename) or not filename.endswith('.schema'): 
             show_message("Sorry, this is not a valid schema file.")
             return
@@ -447,14 +454,14 @@ class MainView(Widget):
         if len(series_labels) == 0: 
             show_message("No variables selected for export.")
             return
-        LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'])
+        LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'], path = self.filechooser_path)
 
     def transition_export(self, series_labels):
         #TODO add better checks here
         if len(series_labels) == 0: 
             show_message("No variables selected for export.")
             return
-        LoadSave(action='save', callback=partial(self._transition_export_callback, series_labels), filters=['*.csv'])
+        LoadSave(action='save', callback=partial(self._transition_export_callback, series_labels), filters=['*.csv'], path = self.filechooser_path)
 
     def event_export(self, series_labels):
         if len(series_labels) == 0: 
@@ -463,11 +470,12 @@ class MainView(Widget):
         elif 'Transients' not in self.series_controller.all_variables_list:
             show_message("Please import transient data before running event matching.")
             return
-        LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'])
+        LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'], path = self.filechooser_path)
 
 
-    def _bout_id_export_callback(self, series_labels, out_filename):
-        
+    def _bout_id_export_callback(self, series_labels, out_filepath, out_filename):
+        self.filechooser_path = out_filepath
+        outfile = os.path.join(out_filepath, out_filename)
         try:
             current_workspace = self.current_subject.workspace
         except AttributeError:
@@ -476,7 +484,7 @@ class MainView(Widget):
         for session in self.sessions:
             for subject in session.subjects:
                 subject.workspace.load(self)
-                outf_basename = os.path.splitext(out_filename)[0] + '_' + str(session) + '_' + str(subject)
+                outf_basename = os.path.splitext(outfile)[0] + '_' + str(session) + '_' + str(subject)
                 for label in series_labels:
                     suffix = ''.join([c for c in label if c.isalnum()])
                     self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
@@ -484,7 +492,9 @@ class MainView(Widget):
         if current_workspace:
             current_workspace.load(self)
 
-    def _transition_export_callback(self, series_labels, out_filename):
+    def _transition_export_callback(self, series_labels, out_filepath, out_filename):
+        self.filechooser_path = out_filepath
+        outfile = os.path.join(out_filepath, out_filename)
         try:
             current_workspace = self.current_subject.workspace
         except AttributeError:
@@ -493,14 +503,16 @@ class MainView(Widget):
         for session in self.sessions:
             for subject in session.subjects:
                 subject.workspace.load(self)
-                outf_basename = os.path.splitext(out_filename)[0] + '_' + str(session) + '_' + str(subject)
+                outf_basename = os.path.splitext(outfile)[0] + '_' + str(session) + '_' + str(subject)
                 for label in series_labels:
                     suffix = ''.join([c for c in label if c.isalnum()])
                     self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
         if current_workspace:
             current_workspace.load(self)
 
-    def _event_export_callback(self, series_labels, out_filename):
+    def _event_export_callback(self, series_labels, out_filepath, out_filename):
+        
+        outfile = os.path.join(out_filepath, out_filename)
         try:
             current_workspace = self.current_subject.workspace
         except AttributeError:
@@ -509,7 +521,7 @@ class MainView(Widget):
         for session in self.sessions:
             for subject in session.subjects:
                 subject.workspace.load(self)
-                outf_basename = os.path.splitext(out_filename)[0] + '_' + str(session) + '_' + str(subject)
+                outf_basename = os.path.splitext(outfile)[0] + '_' + str(session) + '_' + str(subject)
                 for label in series_labels:
                     suffix = ''.join([c for c in label if c.isalnum()])
                     self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
@@ -822,33 +834,35 @@ class LoadSave(Widget):
     text_input = ObjectProperty(None)
     filters = ListProperty(None)
 
-    def __init__(self, action=None, callback=None, **kwargs):
+    def __init__(self, action=None, callback=None, path = None, **kwargs):
         super(LoadSave, self).__init__(**kwargs)
         self.callback = callback
+        self.filechooser_path = path if path is not None else os.path.dirname(os.path.realpath(__file__))
         if action == 'load':
             self.show_load()
         elif action == 'save':
             self.show_save()
 
+
     def dismiss_popup(self):
         self._popup.dismiss()
 
     def show_load(self):
-        content = LoadDialog(filters = self.filters, load=self.load, cancel=self.dismiss_popup)
+        content = LoadDialog(filters = self.filters, load=self.load, cancel=self.dismiss_popup, path = self.filechooser_path)
         self._popup = Popup(title="Load file", content=content, size_hint=(0.9, 0.9))
         self._popup.open()
 
     def show_save(self):
-        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup, path = self.filechooser_path)
         self._popup = Popup(title="Save file", content=content, size_hint=(0.9, 0.9))
         self._popup.open()
 
     def load(self, path, filename):
-        self.callback(os.path.join(path, filename[0]))
+        self.callback(path, filename[0])
         self.dismiss_popup()
 
     def save(self, path, filename):
-        self.callback(os.path.join(path, filename))
+        self.callback(path, filename)
         self.dismiss_popup()
 
 class LoadDialog(FloatLayout):
@@ -856,12 +870,15 @@ class LoadDialog(FloatLayout):
     cancel = ObjectProperty(None)
     filechooser = ObjectProperty(None)
 
-    def __init__(self, filters = None, **kwargs):
+
+    def __init__(self, filters = None, path = None, **kwargs):
         super(LoadDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
         self.filechooser.filters = filters
-        self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
+        print path
+        if path is not None:
+            self.filechooser.path = path
 
 
 class SaveDialog(FloatLayout):
@@ -870,17 +887,12 @@ class SaveDialog(FloatLayout):
     cancel = ObjectProperty(None)
     filechooser = ObjectProperty(None)
 
-    def __init__(self, **kwargs):
+    def __init__(self, path = None, **kwargs):
         super(SaveDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
-        self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
-
-
-
-# Factory.register('LoadSave', cls=LoadSave)
-# Factory.register('LoadDialog', cls=LoadDialog)
-# Factory.register('SaveDialog', cls=SaveDialog)
+        if path is not None:
+            self.filechooser.path = path
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp
