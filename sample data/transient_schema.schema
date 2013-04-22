@@ -1,0 +1,8 @@
+*X:DA transient Peak Time (s)
+*Y:DA transient Amplitude (nM)
+DA transient onset time (s)
+DA transient Rise (s)
+DA transient Decay time (s)
+DA transient Area
+DA transient Baseline
+DA transient HalfWidth
