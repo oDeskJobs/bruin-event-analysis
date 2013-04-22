@@ -219,8 +219,13 @@ class MainView(Widget):
     def _add_transient_file(self, directory, name):
         self.filechooser_path = directory
         path = os.path.join(directory, name)
+        
+        if self.transient_schema is None or not os.path.isfile(self.transient_schema):
+            print "No schema file present. Aborting."
+            return
+        
         try:
-            t = TransientDataFile(path)
+            t = TransientDataFile(path, self.transient_schema)
         except:
             show_message("Could not import this file as a transient data file. Aborting.")
             return
@@ -494,62 +499,32 @@ class MainView(Widget):
             show_message("Please import transient data before running event matching.")
             return
         LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'], path = self.filechooser_path)
-
+        
 
     def _bout_id_export_callback(self, series_labels, out_filepath, out_filename):
         self.filechooser_path = out_filepath
         outfile = os.path.join(out_filepath, out_filename)
-        try:
-            current_workspace = self.current_subject.workspace
-        except AttributeError:
-            current_workspace = None
-
-        for session in self.sessions:
-            for subject in session.subjects:
-                subject.workspace.load(self)
-                outf_basename = os.path.splitext(outfile)[0] + '_' + str(session) + '_' + str(subject)
-                for label in series_labels:
-                    suffix = ''.join([c for c in label if c.isalnum()])
-                    self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
-
-        if current_workspace:
-            current_workspace.load(self)
+        outf_basename = os.path.splitext(outfile)[0]
+        for label in series_labels:
+            suffix = ''.join([c for c in label if c.isalnum()])
+            self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
 
     def _transition_export_callback(self, series_labels, out_filepath, out_filename):
         self.filechooser_path = out_filepath
         outfile = os.path.join(out_filepath, out_filename)
-        try:
-            current_workspace = self.current_subject.workspace
-        except AttributeError:
-            current_workspace = None
-
-        for session in self.sessions:
-            for subject in session.subjects:
-                subject.workspace.load(self)
-                outf_basename = os.path.splitext(outfile)[0] + '_' + str(session) + '_' + str(subject)
-                for label in series_labels:
-                    suffix = ''.join([c for c in label if c.isalnum()])
-                    self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
-        if current_workspace:
-            current_workspace.load(self)
+        outf_basename = os.path.splitext(outfile)[0]
+        for label in series_labels:
+            suffix = ''.join([c for c in label if c.isalnum()])
+            self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
 
     def _event_export_callback(self, series_labels, out_filepath, out_filename):
-        
+        self.filechooser_path = out_filepath        
         outfile = os.path.join(out_filepath, out_filename)
-        try:
-            current_workspace = self.current_subject.workspace
-        except AttributeError:
-            current_workspace = None
 
-        for session in self.sessions:
-            for subject in session.subjects:
-                subject.workspace.load(self)
-                outf_basename = os.path.splitext(outfile)[0] + '_' + str(session) + '_' + str(subject)
-                for label in series_labels:
-                    suffix = ''.join([c for c in label if c.isalnum()])
-                    self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
-        if current_workspace:
-            current_workspace.load(self)
+        outf_basename = os.path.splitext(outfile)[0]
+        for label in series_labels:
+            suffix = ''.join([c for c in label if c.isalnum()])
+            self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
 
 class AskForTextPopup(Popup):
 

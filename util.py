@@ -49,7 +49,7 @@ class Workspace(object):
 
         self.visible_series = [v.text for v in m.legend_button_list.current_toggled]
 
-    def load(self, mainview_widget):
+    def load(self, mainview_widget, *largs):
         m = mainview_widget
         m.series_controller.clear()
         print "setting transient files to ", self.transient_files
@@ -276,7 +276,7 @@ class SeriesController(Widget):
     def export_events(self, label, filename):
         with open(filename, 'w') as outf:
             csvwriter = csv.writer(outf)
-            csvwriter.writerow(['DA transient Peak Time (s)','DA transient Amplitude (nM)',"Matched Event", "Matched Event Time", "Peak time after event"])
+            csvwriter.writerow(['Transient X','Transient Amplitude',"Matched Event", "Matched Event Time", "Peak time after event"])
             transient_x = self.series_dict['Transients'].data_x
             transient_y = self.series_dict['Transients'].data_y
             event_x = self.series_dict[label].data_x

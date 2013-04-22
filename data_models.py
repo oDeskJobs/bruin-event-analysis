@@ -7,17 +7,34 @@ class TransientDataFile(object):
     property contains a list of TransientDataPoint objects corresponding to the lines in source_file."""
 
     # defines the order of the data fields in the input data file
-    data_file_field_order = ['peak_time', 'amplitude', 'onset_time', 'rise', 'decay_time', 'area', 'baseline', 'half_width']
     has_header_row = True
     data = []
+    schema = []
 
-    def __init__(self, source_file, fields=None):
-        if fields is not None: self.data_file_field_order = fields
+    def __init__(self, source_file, schema_file):
+        self.get_schema(schema_file)
         self.source_file = source_file
         self.read(source_file)
 
     def __str__(self):
-        return "<%s: %i fields, %i records>" % (self.source_file, len(self.data_file_field_order), len(self.data))
+        return "<%s: %i fields, %i records>" % (self.source_file, len(self.schema), len(self.data))
+
+    def get_schema(self, schema_file):
+        self.schema = []
+        with open(schema_file, 'r') as inf:
+            for line in inf:
+                # ignore blanks
+                if line.strip() == "": 
+                    continue
+                elif line.startswith('*Y:'):
+                    self.amplitude_col = line[3:].strip()
+                    self.schema.append(self.amplitude_col)
+                elif line.startswith('*X:'):
+                    self.time_col = line[3:].strip()
+                    self.schema.append(self.time_col)
+                else:
+                    self.schema.append(line.strip())
+        print self.schema
 
     def read(self, source_file):
         all_lines = []
@@ -32,36 +49,36 @@ class TransientDataFile(object):
                 if len(line) == 0: continue
 
                 # otherwise, raise an Exception if the line doesn't match the defined field order
-                assert len(line) == len(self.data_file_field_order)
+                print len(line), len(self.schema)
+                assert len(line) == len(self.schema)
 
                 t = TransientDataPoint()
-                t.set_from_row(line, self.data_file_field_order)
+                t.set_from_row(line, self.schema)
                 all_lines.append(t)
 
         self.data = all_lines
 
-    def get_xy_pairs(self, x='peak_time', y='amplitude'):
-        assert x in self.data_file_field_order and y in self.data_file_field_order
+    def get_xy_pairs(self):
         for d in self.data:
-            yield (d[x], d[y])
+            yield (d[self.time_col], d[self.amplitude_col])
 
 
 
 class TransientDataPoint(object):
     """Represents one data point of processed transient neurotransmitter data."""
 
-    peak_time = 0
-    amplitude = 0
-    onset_time = 0
-    rise = 0
-    decay_time = 0
-    area = 0
-    baseline = 0
-    half_width = 0
+    # peak_time = 0
+    # amplitude = 0
+    # onset_time = 0
+    # rise = 0
+    # decay_time = 0
+    # area = 0
+    # baseline = 0
+    # half_width = 0
 
     def __init__(self, **kwargs):
         for k in kwargs.keys():
-            assert k in dir(self)
+            # assert k in dir(self)
             setattr(self, k, kwargs[k])
             
     def set_from_row(self, row, field_order):
