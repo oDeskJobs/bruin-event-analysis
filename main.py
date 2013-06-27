@@ -496,6 +496,16 @@ class BoutIDBox(BoxLayout):
         if self.export_callback is not None:
             self.export_callback(selected)
 
+    def get_manual_input(self):
+        request_input("Please choose a value", self.accept_manual_input)
+
+    def accept_manual_input(self, value):
+        try:
+            floatval = float(value.strip())
+            self.slider.value = floatval
+        except Exception as e:
+            print e
+            show_message("Not a valid input")
 
 class TransitionIDBox(BoxLayout):
     transition_threshold = NumericProperty(1.)
@@ -533,6 +543,18 @@ class TransitionIDBox(BoxLayout):
         if self.export_callback is not None:
             self.export_callback(selected)
 
+    def get_manual_input(self):
+        request_input("Please choose a value", self.accept_manual_input)
+
+    def accept_manual_input(self, value):
+        try:
+            floatval = float(value.strip())
+            self.slider.value = floatval
+        except Exception as e:
+            print e
+            show_message("Not a valid input")
+
+
 class EventMatchingBox(BoxLayout):
     before_threshold = NumericProperty(-2.)
     after_threshold = NumericProperty(2.)
@@ -548,6 +570,28 @@ class EventMatchingBox(BoxLayout):
         selected = [v.text for v in self.listbox.variable_list.current_toggled]
         if self.export_callback is not None:
             self.export_callback(selected)
+
+    def get_manual_input1(self):
+        request_input("Please choose a value", self.accept_manual_input1)
+
+    def accept_manual_input1(self, value):
+        try:
+            floatval = float(value.strip())
+            self.ds.value = floatval
+        except Exception as e:
+            print e
+            show_message("Not a valid input")
+
+    def get_manual_input2(self):
+        request_input("Please choose a value", self.accept_manual_input2)
+
+    def accept_manual_input2(self, value):
+        try:
+            floatval = float(value.strip())
+            self.ds.value2 = floatval
+        except Exception as e:
+            print e
+            show_message("Not a valid input")
 
 class BehaviorBox(BoxLayout):
     load_schema_callback = ObjectProperty(None)
@@ -748,6 +792,29 @@ class MessagePopupContent(Widget):
     ok_callback = ObjectProperty(None)
     text = StringProperty("")
 
+def request_input(prompt, callback):
+    popup = PromptPopup(prompt, callback)
+    popup.open()
+
+class PromptPopup(Popup):
+
+    def __init__(self, prompt, callback, **kwargs):
+        self.callback = callback
+        kwargs['size_hint'] = (None, None)
+        kwargs['size'] = (300, 200)
+        kwargs['title'] = "User Input"
+        kwargs['content'] = PromptPopupContent(prompt = prompt, ok_callback = self._ok_callback)
+
+        super(PromptPopup, self).__init__(**kwargs)
+
+    def _ok_callback(self, *args, **kwargs):
+        self.callback(*args, **kwargs)
+        self.dismiss()
+
+class PromptPopupContent(Widget):
+    ok_callback = ObjectProperty(None)
+    prompt = StringProperty("")
+    value = StringProperty("")
 
 class LoadSave(Widget):
     ok = BooleanProperty(False)

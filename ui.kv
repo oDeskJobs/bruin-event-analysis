@@ -432,6 +432,7 @@
         Label:
             size_hint: (.35, 1)
             text: "Threshold: " + str(round(sl1.value, 1))+ "s"
+            on_touch_down: self.collide_point(*args[1].pos) and root.get_manual_input()
         Slider:
             size_hint: (.65, 1)
             id: sl1
@@ -486,6 +487,7 @@
         Label:
             size_hint: (.35, 1)
             text: "Threshold: " + str(round(sl2.value, 1))+ "s"
+            on_touch_down: self.collide_point(*args[1].pos) and root.get_manual_input()
         Slider:
             size_hint: (.65, 1)
             id: sl2
@@ -544,6 +546,7 @@
         Label:
             size_hint: (.1, 1)
             text: str(round(ds.value, 1))+ "s"
+            on_touch_down: self.collide_point(*args[1].pos) and root.get_manual_input1()
         DoubleSlider:
             id: ds
             size_hint: (.8, 1)
@@ -551,12 +554,13 @@
             max: 10
             mid: 0
             value: -2.
-            on_value: root.set_before_threshold(self.value)
+            on_value: root.set_before_threshold(self.value)            
             value2: 2.
-            on_value2: root.set_after_threshold(self.value2)
+            on_value2: root.set_after_threshold(self.value2)            
         Label:
             size_hint: (.1, 1)
             text: str(round(ds.value2, 1))+ "s"
+            on_touch_down: self.collide_point(*args[1].pos) and root.get_manual_input2()
     VariableBox:
         id: listbox
         size_hint: (1,1)
@@ -649,5 +653,35 @@
                 text: "OK"
                 size_hint: (.2, 1)
                 on_release: root.ok_callback()
+            Widget:
+                size_hint: (.4, 1)
+
+<PromptPopupContent>
+    BoxLayout:
+        pos: root.pos
+        size: root.size
+        orientation: 'vertical'
+        spacing: 10
+        padding: 10
+        Label: 
+            text: root.prompt
+            size_hint: (1, 1)
+            text_size: self.size
+            valign: 'middle'
+        TextInput:
+            text:""
+            focus:True
+            size_hint: (1,1)
+            id:textinput
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: (1, None)
+            height: 32
+            Widget:
+                size_hint: (.4, 1)
+            Button:
+                text: "OK"
+                size_hint: (.2, 1)
+                on_release: root.ok_callback(textinput.text)
             Widget:
                 size_hint: (.4, 1)
