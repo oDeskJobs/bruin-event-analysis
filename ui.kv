@@ -62,17 +62,16 @@
                     size_hint: (1, 1)
                     orientation: 'horizontal'
                     spacing: grid_spacing
+
                     BoxLayout:
                         orientation: 'vertical'
                         spacing: grid_spacing
                         size_hint: (.5, 1)
-                        BoxWithHeader:
+                        TransientBox:
                             id: transient_box
-                            title: "Transients"
-                            size_hint: (1,1)
-                            radio_button_mode: False
                             add_button_callback: root.prompt_for_transient_file
                             remove_button_callback: root.remove_transient_button
+                            load_schema_callback: root.prompt_for_transient_schema
                     BoxLayout:
                         orientation: 'vertical'
                         spacing: grid_spacing
@@ -363,7 +362,49 @@
         id: listbox
         size_hint: (1,1)
 
-
+<TransientBox>:
+    listbox: listbox
+    schema_button: schema_button
+    orientation: 'vertical'
+    spacing: grid_spacing
+    padding: grid_spacing
+    size_hint: (1,1)
+    canvas:
+        Color:
+            rgb: box_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Header:
+        text: "Transients"
+    VariableBox:
+        id: listbox
+        size_hint: (1,1)
+        radio_button_mode: False
+    BoxLayout:
+        size_hint: (1, None)
+        height: 32
+        padding: grid_spacing
+        orientation: 'horizontal'
+        Button:
+            id: schema_button
+            text: "Load Schema..."
+            font_size: 10
+            on_release: root.load_schema_callback()
+        Widget:
+            size_hint: (1,1)
+        Button:
+            background_normal: 'assets/plus32.png'
+            background_down: 'assets/plus32-purple.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.add_button_callback()
+        Button:
+            background_normal: 'assets/minus32.png'
+            background_down: 'assets/minus32-down.png'
+            size_hint: (None, None) 
+            size: (32, 32)
+            on_release: root.remove_button_callback()
 
 
 <BehaviorBox>:

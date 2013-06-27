@@ -3,7 +3,10 @@ from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
 from copy import copy
 import csv
+import sys
 
+def flatten(l):
+    return [item for sublist in l for item in sublist]
 
 class Workspace(object):
     """This class contains all the information required to load or save a workspace"""
@@ -35,31 +38,29 @@ class Workspace(object):
 
         self.behavior_files = copy(m.behavior_files)
         self.selected_behavior_filenames = [v.text for v in m.behavior_button_list.current_toggled]
-        self.schema = m.schema
 
         self.selected_bout_variables = [v.text for v in m.bout_id_button_list.current_toggled]
-        self.bout_threshold = m.bout_id_box.bout_threshold
+        # self.bout_threshold = m.bout_id_box.bout_threshold
 
         self.all_transition_variable_pairs = list(m.transition_button_list.variable_list)
         self.selected_transition_variable_pairs = [v.text for v in m.transition_button_list.current_toggled]
-        self.transition_threshold = m.transition_box.transition_threshold
+        # self.transition_threshold = m.transition_box.transition_threshold
 
         self.selected_event_matching_variables = [v.text for v in m.event_button_list.current_toggled]
-        self.event_matching_before_threshold = m.event_box.before_threshold
-        self.event_matching_after_threshold = m.event_box.after_threshold
+        # self.event_matching_before_threshold = m.event_box.before_threshold
+        # self.event_matching_after_threshold = m.event_box.after_threshold
 
         self.visible_series = [v.text for v in m.legend_button_list.current_toggled]
 
-    def load(self, mainview_widget):
+    def load(self, mainview_widget, *largs):
         m = mainview_widget
-
+        m.series_controller.clear()
         print "setting transient files to ", self.transient_files
         m.transient_files = self.transient_files
         m.transient_button_list.deselect_all()
         for f in self.selected_transient_filenames:
             m.transient_button_list.set_state(f, 'down')
 
-        m.schema = self.schema
         m.behavior_files = self.behavior_files
         m.behavior_button_list.deselect_all()
         for f in self.selected_behavior_filenames:
@@ -72,19 +73,19 @@ class Workspace(object):
         m.bout_id_button_list.deselect_all()
         for f in self.selected_bout_variables:
             m.bout_id_button_list.set_state(f, 'down')
-        m.bout_id_box.slider.value = self.bout_threshold
+        # m.bout_id_box.slider.value = self.bout_threshold
 
         m.transition_button_list.variable_list =  self.all_transition_variable_pairs
         m.transition_button_list.deselect_all()
         for f in self.selected_transition_variable_pairs:
             m.transition_button_list.set_state(f, 'down')
-        m.transition_box.slider.value = self.transition_threshold
+        # m.transition_box.slider.value = self.transition_threshold
 
         m.event_button_list.deselect_all()
         for f in self.selected_event_matching_variables:
             m.event_button_list.set_state(f, 'down')
-        m.event_box.ds.value = self.event_matching_before_threshold
-        m.event_box.ds.value2 = self.event_matching_after_threshold
+        # m.event_box.ds.value = self.event_matching_before_threshold
+        # m.event_box.ds.value2 = self.event_matching_after_threshold
 
         m.legend_button_list.deselect_all()
         for f in self.visible_series:
@@ -108,9 +109,7 @@ class Session(object):
         self.subjects.append(Subject(subject_name))
 
     def remove_subject(self, subject):
-        print self.subjects
         self.subjects.remove(subject)
-        print self.subjects
 
     def __str__(self):
         return self.name
@@ -123,6 +122,8 @@ class SeriesController(Widget):
     all_variables_list = ListProperty([])
     x_only_fields = []
     arrows = DictProperty({})
+    transient_files = []
+    other_files = []
 
     # determines where on the y_axis series show up if they don't have y data
     x_only_field_y_hints = [[],
@@ -138,7 +139,7 @@ class SeriesController(Widget):
         self.visualizer.bind(viewport = self.viewport_changed)
         self.color_palette = ColorPalette()
 
-    def add_data(self, label, xy_data, marker = 'tick', is_x_only = False):
+    def add_data(self, label, xy_data, marker = 'tick', is_x_only = False, replace_previous_data = False):
         if len(xy_data) == 0: return
         # if label is new, make a new series
         if label not in self.series_dict.keys():
@@ -146,7 +147,7 @@ class SeriesController(Widget):
             self.series_dict[label] = s
             if is_x_only and label not in self.x_only_fields: self.x_only_fields.append(label)
         t = self.series_dict[label]
-        if t.data is None: t.data = []
+        if t.data is None or replace_previous_data: t.data = []
         if is_x_only: 
             t.data = t.data + self.reshape_x_only_data(label, xy_data)
         else:
@@ -155,13 +156,25 @@ class SeriesController(Widget):
         # print self.all_variables_list
         print "Adding %s data points to series '%s'; series now contains %s items." % (len(xy_data), label, len(t.data))
 
+    def add_file(self, file_object, transient=False):
+        if transient:
+            self.transient_files.append(file_object)
+        else:
+            self.other_files.append(file_object)
+
+    def clear_files(self, transient=False):
+        if transient:
+            self.transient_files = []
+        else:
+            self.other_files = []
+
     def reshape_x_only_data(self, label, xy_data):
         enabled_x_only_fields = [l for l in self.x_only_fields if self.series_dict[l].enabled or l == label]
         if len(enabled_x_only_fields) == 0: enabled_x_only_fields = self.x_only_fields
         all_y_hints = self.x_only_field_y_hints[len(enabled_x_only_fields)]
         series_y_hint = all_y_hints[enabled_x_only_fields.index(label)]
         series_y = self.visualizer.viewport[1] + series_y_hint*(self.visualizer.viewport[3] - self.visualizer.viewport[1])
-        print [(t[0], series_y) for t in xy_data]
+        # print [(t[0], series_y) for t in xy_data]
         return [(t[0], series_y) for t in xy_data]
 
 
@@ -175,7 +188,7 @@ class SeriesController(Widget):
             if not t.data: continue
             t.data = self.reshape_x_only_data(label, t.data)
 
-    def clear(self, label = None, except_label = None):
+    def clear(self, label = None, except_label = None, startswith = None):
         # use clear(label=name) to clear a given column, or use clear(except_label=name) to remove all columns *except* a given column
         if label is not None:
             if label in self.series_dict: self.series_dict[label].data = []
@@ -185,6 +198,15 @@ class SeriesController(Widget):
                 if each != except_label:
                     self.series_dict[each].data = []
             self.all_variables_list = [except_label] if except_label in self.all_variables_list else []
+        elif startswith is not None:
+            for label in self.all_variables_list[:]:
+                if label.startswith(startswith):
+                    self.series_dict[label].data = []
+                    self.all_variables_list.remove(label)
+        else:
+            for each in self.all_variables_list:
+                self.series_dict[each].data = []
+                self.all_variables_list = []
 
     def update_visible_series(self, list_of_labels):
         for label in self.series_dict.keys():
@@ -269,9 +291,22 @@ class SeriesController(Widget):
                 csvwriter.writerow([idx, label1, label2, time_range[0], time_range[1]])
 
     def export_events(self, label, filename):
+        # get list of all datapoints and all column names in transient file
+        all_datapoints = []
+        all_transient_fieldnames = set()
+        time_col = self.transient_files[0].time_col
+        for datafile in self.transient_files:
+            kv_pairs = [datapoint.kv_pairs for datapoint in datafile.data]
+            print kv_pairs
+            keys = set(flatten([kv.keys() for kv in kv_pairs]))
+            all_datapoints += kv_pairs
+            all_transient_fieldnames.update(keys)
+
+                
         with open(filename, 'w') as outf:
-            csvwriter = csv.writer(outf)
-            csvwriter.writerow(['DA transient Peak Time (s)','DA transient Amplitude (nM)',"Matched Event", "Matched Event Time", "Peak time after event"])
+            fieldnames = sorted(all_transient_fieldnames) + ["Matched Event", "Matched Event Time", "Peak time after event"]
+            csvwriter = csv.DictWriter(outf, fieldnames=fieldnames)
+            csvwriter.writeheader()
             transient_x = self.series_dict['Transients'].data_x
             transient_y = self.series_dict['Transients'].data_y
             event_x = self.series_dict[label].data_x
@@ -283,12 +318,19 @@ class SeriesController(Widget):
                     event_label = None
                     matched_event = None
                     time_diff = None
+                    addl_fields = {}
                 else:
                     event_label = label
                     matched_event = min(related_events, key = lambda k: abs(peak_time-k))
                     time_diff = peak_time - matched_event
+                datapoints = [p for p in all_datapoints if p[time_col] == peak_time]
+                print peak_time, datapoints
+                addl_fields = datapoints[0] if len(datapoints) > 0 else {}
 
-                csvwriter.writerow([peak_time, amplitude, event_label, matched_event, time_diff])
+
+                csvwriter.writerow(dict(addl_fields.items() + [("Matched Event", event_label), 
+                    ("Matched Event Time", matched_event),
+                    ("Peak time after event", time_diff)]))
 
 
 class ColorPalette(object):

@@ -21,9 +21,11 @@ from functools import partial
 
 Builder.load_file('ui.kv')
 Config.set('graphics', 'width', '1200')
-Config.set('graphics', 'height', '800')
+Config.set('graphics', 'height', '700')
 
-def get_bout_regions_from_xy_data(data, bout_threshold = 1.):
+
+
+def get_bout_regions_from_xy_data(data, bout_threshold = 1., single_events_are_bouts = True):
     sorted_data = sorted(data, key=lambda x: x[0])
     in_bout = False
     current_bout_start = 0
@@ -37,17 +39,27 @@ def get_bout_regions_from_xy_data(data, bout_threshold = 1.):
         elif in_bout and not within_threshold:
             bouts.append((current_bout_start, x1[0]))
             in_bout = False
+        elif single_events_are_bouts and not in_bout and not within_threshold:
+            if len(bouts) == 0 or x1[0] not in bouts[-1]: bouts.append((x1[0], x1[0]))
+
+        # if x2 == sorted_data[-1]:
         x1 = x2
+
+    # special logic for last event
+    if in_bout:
+        bouts.append((current_bout_start, x2[0]))
+    elif single_events_are_bouts:
+        bouts.append((x2[0], x2[0]))
+
+
 
     return bouts
 
-def get_transitions_from_xy_data(data1, data2, threshold = 1.):
+def get_transitions_from_xy_data_obselete(data1, data2, threshold = 1.):
     data_dict = {k[0]: 1 for k in data1}
     _data_dict2 = {k[0]:2 if k not in data1 else 3 for k in data2}
     data_dict.update(_data_dict2)
     all_keys = sorted(data_dict.keys())
-    print data_dict
-    print all_keys
     
     cursor_in_data1 = False
     cursor_not_in_data1_until = 0
@@ -60,6 +72,29 @@ def get_transitions_from_xy_data(data1, data2, threshold = 1.):
             cursor_not_in_data1_until = x2 + threshold
             cursor_in_data1 = False
         elif data_dict[x2] == 1 and x2 > cursor_not_in_data1_until:
+            cursor_in_data1 = True
+        x1 = x2
+
+    return transitions
+
+def get_transitions_from_xy_data(data1, data2, threshold = 1.):
+    data_dict = {k[0]: 1 for k in data1}
+    _data_dict2 = {k[0]: 2 if k not in data1 else 3 for k in data2}
+    data_dict.update(_data_dict2)
+    all_keys = sorted(data_dict.keys())
+    print data_dict
+    print all_keys
+    
+    cursor_in_data1 = False
+    cursor_not_in_data1_until = 0
+    transitions = []
+
+    for x2 in all_keys:
+        if data_dict[x2] != 1:
+            if cursor_in_data1 and x2 - threshold <= x1:
+                transitions.append((x1,x2))
+            cursor_in_data1 = False
+        elif data_dict[x2] == 1:
             cursor_in_data1 = True
         x1 = x2
 
@@ -79,11 +114,11 @@ class MainView(Widget):
     behavior_files = ListProperty(None)
     transient_files = ListProperty(None)
     schema = StringProperty(None, allownone = True)
+    transient_schema = StringProperty(None, allownone = True)
     sessions = ListProperty(None)
     current_session = ObjectProperty(None, allownone = True)
     subjects = ListProperty(None)
     current_subject = ObjectProperty(None, allownone = True)
-
     legend_width = NumericProperty(300)
 
     def __init__(self, **kwargs):
@@ -117,6 +152,7 @@ class MainView(Widget):
         self.bout_id_button_list = self.bout_id_box.listbox.variable_list
         self.bout_id_button_list.bind(current_toggled=self._bout_id_params_changed)
         self.bout_id_box.bind(bout_threshold=self._bout_id_params_changed)
+        self.bout_id_box.bind(single_events_are_bouts=self._bout_id_params_changed)
         self.bout_id_box.export_callback = self.bout_id_export
 
         self.transition_button_list = self.transition_box.listbox.variable_list
@@ -130,6 +166,7 @@ class MainView(Widget):
         self.event_box.bind(after_threshold=self._event_params_changed)
         self.event_box.export_callback = self.event_export
 
+        self.filechooser_path = os.path.dirname(os.path.realpath(__file__))
         
         self.session_box.listbox.variable_list.variable_list = []
         self.subject_box.listbox.variable_list.variable_list = []
@@ -156,7 +193,7 @@ class MainView(Widget):
         if self.current_subject is None: 
             show_message("You must choose a subject before importing files.")
             return
-        LoadSave(action='load', callback=self._add_transient_file, filters=['*.csv'])
+        LoadSave(action='load', callback=self._add_transient_file, filters=['*.csv'], path = self.filechooser_path)
 
     def prompt_for_behavior_file(self):
         if self.current_subject is None: 
@@ -165,17 +202,30 @@ class MainView(Widget):
         if self.schema is None:
             show_message("You must choose a schema before importing a behavior file.")
             return
-        LoadSave(action='load', callback=self._add_behavior_file, filters=['*.csv'])
+        LoadSave(action='load', callback=self._add_behavior_file, filters=['*.csv'], path = self.filechooser_path)
 
     def prompt_for_schema(self):
         if self.current_subject is None: 
             show_message("You must choose a subject before importing files.")
             return
-        LoadSave(action='load', callback=self._add_schema, filters=['*.schema'])
+        LoadSave(action='load', callback=self._add_schema, filters=['*.schema'], path = self.filechooser_path)
 
-    def _add_transient_file(self, path):
+    def prompt_for_transient_schema(self):
+        if self.current_subject is None: 
+            show_message("You must choose a subject before importing files.")
+            return
+        LoadSave(action='load', callback=self._add_transient_schema, filters=['*.schema'], path = self.filechooser_path)
+
+    def _add_transient_file(self, directory, name):
+        self.filechooser_path = directory
+        path = os.path.join(directory, name)
+        
+        if self.transient_schema is None or not os.path.isfile(self.transient_schema):
+            print "No schema file present. Aborting."
+            return
+        
         try:
-            t = TransientDataFile(path)
+            t = TransientDataFile(path, self.transient_schema)
         except:
             show_message("Could not import this file as a transient data file. Aborting.")
             return
@@ -200,24 +250,30 @@ class MainView(Widget):
         self.subject_button_list.variable_list = [str(x) for x in self.subjects]
 
     def _transient_select_changed(self, instance, value):
+        print "transient select changed"
         selected_basenames = [v.text for v in value]
         self.series_controller.clear(label = 'Transients')
+        self.series_controller.clear_files(transient=True)
         for t in self.transient_files:
             if os.path.basename(t.source_file) in selected_basenames:
                 data = [p for p in t.get_xy_pairs()]
                 self.series_controller.add_data('Transients', data)
+                self.series_controller.add_file(t, transient=True)
 
     def _behavior_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
-        
         self.series_controller.clear(except_label = 'Transients')
+        self.series_controller.clear_files()
         for s in self.behavior_files:
             if os.path.basename(s.source_file) in selected_basenames:
                 for field in s.get_valid_time_columns():
                     data = [p for p in s.get_xy_pairs(x=field)]
                     self.series_controller.add_data(field, data, marker='plus', is_x_only = True)
+                self.series_controller.add_file(s)
 
-    def _add_behavior_file(self, path):
+    def _add_behavior_file(self, directory, name):
+        self.filechooser_path = directory
+        path = os.path.join(directory, name)
         
         if self.schema is None or not os.path.isfile(self.schema):
             print "No schema file present. Aborting."
@@ -238,7 +294,7 @@ class MainView(Widget):
         
 
     def _all_variables_changed(self, instance, value):
-        self.bout_id_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients"]
+        self.bout_id_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients" and not v.startswith("Bouts:")]
         self.event_box.listbox.variable_list.variable_list = [v for v in sorted(value, key=self.label_sort_func) if v != "Transients"]
         self.legend_box.listbox.variable_list.variable_list = sorted(value, key=self.label_sort_func)
         self.transition_box.available_variables = sorted(value, key=self.label_sort_func)
@@ -273,11 +329,14 @@ class MainView(Widget):
 
     def calculate_bouts(self, *largs):
         self.series_controller.clear_highlights()
+        # self.series_controller.clear(startswith = 'Bouts:')
         for t in self.bout_id_box.listbox.variable_list.current_toggled:
             label = t.text
             data = self.series_controller.get_data(label)
-            bouts = get_bout_regions_from_xy_data(data, bout_threshold = self.bout_id_box.bout_threshold)
-            print "Identified bouts for series %s:" % (label,), bouts
+            bouts = get_bout_regions_from_xy_data(data, bout_threshold = self.bout_id_box.bout_threshold, 
+                    single_events_are_bouts = self.bout_id_box.single_event_checkbox.active)
+            # add bout data to series controller for event matching
+            self.series_controller.add_data("Bouts: " + label, [(b[0], None) for b in bouts], marker='plus', is_x_only = True, replace_previous_data = True)
             self.series_controller.add_highlights(t.text, bouts)
 
     def calculate_transitions(self, *largs):
@@ -287,7 +346,6 @@ class MainView(Widget):
             label1, label2 = [v.strip() for v in t.text.split('->')]
             data1, data2 = [self.series_controller.get_data(l) for l in (label1, label2)]
             transitions = get_transitions_from_xy_data(data1, data2, threshold = self.transition_box.transition_threshold)
-            print "Identified transitions for series %s:" % (t.text,), transitions
             self.series_controller.add_arrows(label1, label2, transitions)
 
     def calculate_event_matches(self, *largs):
@@ -296,7 +354,6 @@ class MainView(Widget):
             label = t.text
             before_dist = self.event_box.before_threshold
             after_dist = self.event_box.after_threshold
-            print before_dist, after_dist
             self.series_controller.add_col_highlights(label, -before_dist, after_dist)
 
     def add_subject(self):
@@ -349,9 +406,11 @@ class MainView(Widget):
 
     def _subject_select_changed(self, instance, value):
         if self.current_subject is not None: self.current_subject.workspace.save(self)
+        
         if len(value) == 0:
             self.current_subject = None
             self.blank_workspace.load(self)
+
         else:
             names = [v.text for v in value]
             selected_subjects = [s for s in self.subjects if s.name in names]
@@ -376,6 +435,7 @@ class MainView(Widget):
     def _remove_subject_callback(self, text):
         if self.current_subject is not None and self.current_subject.name == text:
             self.current_subject = None
+            
             self.blank_workspace.load(self)
 
         selected_subjects = [s for s in self.subjects if s.name == text]
@@ -389,12 +449,21 @@ class MainView(Widget):
     def _remove_behavior_callback(self, text):
         self.behavior_files = [t for t in self.behavior_files if os.path.basename(t.source_file) != text]
 
-
-    def _add_schema(self, filename):
+    def _add_schema(self, directory, name):
+        self.filechooser_path = directory
+        filename = os.path.join(directory, name)
         if not os.path.isfile(filename) or not filename.endswith('.schema'): 
             show_message("Sorry, this is not a valid schema file.")
             return
         self.schema = filename
+
+    def _add_transient_schema(self, directory, name):
+        self.filechooser_path = directory
+        filename = os.path.join(directory, name)
+        if not os.path.isfile(filename) or not filename.endswith('.schema'): 
+            show_message("Sorry, this is not a valid schema file.")
+            return
+        self.transient_schema = filename
 
     def on_schema(self, instance, value):
         if value is None:
@@ -404,51 +473,62 @@ class MainView(Widget):
             self.behavior_box.schema_button.text = "Schema loaded."
             self.behavior_box.schema_button.state = 'down'
 
+    def on_transient_schema(self, instance, value):
+        if value is None:
+            self.transient_box.schema_button.text = "Load Schema..."
+            self.transient_box.schema_button.state = 'normal'
+        else:
+            self.transient_box.schema_button.text = "Schema loaded."
+            self.transient_box.schema_button.state = 'down'
+
     def bout_id_export(self, series_labels):
+        #TODO add better checks here
         if len(series_labels) == 0: 
             show_message("No variables selected for export.")
             return
-        LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'])
+        LoadSave(action='save', callback=partial(self._bout_id_export_callback, series_labels), filters=['*.csv'], path = self.filechooser_path)
 
     def transition_export(self, series_labels):
+        #TODO add better checks here
         if len(series_labels) == 0: 
             show_message("No variables selected for export.")
             return
-        LoadSave(action='save', callback=partial(self._transition_export_callback, series_labels), filters=['*.csv'])
+        LoadSave(action='save', callback=partial(self._transition_export_callback, series_labels), filters=['*.csv'], path = self.filechooser_path)
 
     def event_export(self, series_labels):
         if len(series_labels) == 0: 
             show_message("No variables selected for export.")
             return
-        LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'])
+        elif 'Transients' not in self.series_controller.all_variables_list:
+            show_message("Please import transient data before running event matching.")
+            return
+        LoadSave(action='save', callback=partial(self._event_export_callback, series_labels), filters=['*.csv'], path = self.filechooser_path)
+        
 
+    def _bout_id_export_callback(self, series_labels, out_filepath, out_filename):
+        self.filechooser_path = out_filepath
+        outfile = os.path.join(out_filepath, out_filename)
+        outf_basename = os.path.splitext(outfile)[0]
+        for label in series_labels:
+            suffix = ''.join([c for c in label if c.isalnum()])
+            self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
 
-    def _bout_id_export_callback(self, series_labels, out_filename):
-        if len(series_labels) == 1:
-            self.series_controller.export_bouts(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
-        else:
-            outf_basename = os.path.splitext(out_filename)[0]
-            for label in series_labels:
-                suffix = ''.join([c for c in label if c.isalnum()])
-                self.series_controller.export_bouts(label, outf_basename+'_'+suffix+'.csv')
+    def _transition_export_callback(self, series_labels, out_filepath, out_filename):
+        self.filechooser_path = out_filepath
+        outfile = os.path.join(out_filepath, out_filename)
+        outf_basename = os.path.splitext(outfile)[0]
+        for label in series_labels:
+            suffix = ''.join([c for c in label if c.isalnum()])
+            self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
 
-    def _transition_export_callback(self, series_labels, out_filename):
-        if len(series_labels) == 1:
-            self.series_controller.export_transitions(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
-        else:
-            outf_basename = os.path.splitext(out_filename)[0]
-            for label in series_labels:
-                suffix = ''.join([c for c in label if c.isalnum()])
-                self.series_controller.export_transitions(label, outf_basename+'_'+suffix+'.csv')
+    def _event_export_callback(self, series_labels, out_filepath, out_filename):
+        self.filechooser_path = out_filepath        
+        outfile = os.path.join(out_filepath, out_filename)
 
-    def _event_export_callback(self, series_labels, out_filename):
-        if len(series_labels) == 1:
-            self.series_controller.export_events(series_labels[0], os.path.splitext(out_filename)[0] + '.csv')
-        else:
-            outf_basename = os.path.splitext(out_filename)[0]
-            for label in series_labels:
-                suffix = ''.join([c for c in label if c.isalnum()])
-                self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
+        outf_basename = os.path.splitext(outfile)[0]
+        for label in series_labels:
+            suffix = ''.join([c for c in label if c.isalnum()])
+            self.series_controller.export_events(label, outf_basename+'_'+suffix+'.csv')
 
 class AskForTextPopup(Popup):
 
@@ -483,13 +563,14 @@ class BoutIDBox(BoxLayout):
     slider = ObjectProperty(None)
     export_callback = ObjectProperty(None)
     single_event_checkbox = ObjectProperty(None)
+    single_events_are_bouts = BooleanProperty(True)
 
     def toggle_checkbox(self):
         self.single_event_checkbox.active = not self.single_event_checkbox.active
+        self.single_events_are_bouts = self.single_event_checkbox.active
 
     def set_threshold(self, value):
         self.bout_threshold = value
-        print value
 
     def export_data(self):
         selected = [v.text for v in self.listbox.variable_list.current_toggled]
@@ -516,7 +597,6 @@ class TransitionIDBox(BoxLayout):
 
     def set_threshold(self, value):
         self.transition_threshold = value
-        print value
 
     def add_variable_pair(self):
         variable_pairer = VariablePairer(self.available_variables)
@@ -599,6 +679,13 @@ class BehaviorBox(BoxLayout):
     remove_button_callback = ObjectProperty(None)
     schema_button = ObjectProperty(None)
 
+class TransientBox(BoxLayout):
+    # This REALLY ought to be refactored into the same class as BehaviorBox. Pretty embarrassing.
+    load_schema_callback = ObjectProperty(None)
+    add_button_callback = ObjectProperty(None)
+    remove_button_callback = ObjectProperty(None)
+    schema_button = ObjectProperty(None)
+
 class VariablePairer(BoxLayout):
     current_pick_1 = ObjectProperty(None)
     current_pick_2 = ObjectProperty(None)
@@ -649,7 +736,6 @@ class VariablesList(GridLayout):
             variable_button = ToggleButton(text = each, on_release = self.button_press)
             if self.radio_button_mode:
                 variable_button.group = self
-            print variable_button.text, variable_button.group
             self.add_widget(variable_button)
             self.current_buttons.append(variable_button)
         self.height = len(self.variable_list) * (self.row_default_height + self.spacing)
@@ -824,33 +910,35 @@ class LoadSave(Widget):
     text_input = ObjectProperty(None)
     filters = ListProperty(None)
 
-    def __init__(self, action=None, callback=None, **kwargs):
+    def __init__(self, action=None, callback=None, path = None, **kwargs):
         super(LoadSave, self).__init__(**kwargs)
         self.callback = callback
+        self.filechooser_path = path if path is not None else os.path.dirname(os.path.realpath(__file__))
         if action == 'load':
             self.show_load()
         elif action == 'save':
             self.show_save()
 
+
     def dismiss_popup(self):
         self._popup.dismiss()
 
     def show_load(self):
-        content = LoadDialog(filters = self.filters, load=self.load, cancel=self.dismiss_popup)
+        content = LoadDialog(filters = self.filters, load=self.load, cancel=self.dismiss_popup, path = self.filechooser_path)
         self._popup = Popup(title="Load file", content=content, size_hint=(0.9, 0.9))
         self._popup.open()
 
     def show_save(self):
-        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup, path = self.filechooser_path)
         self._popup = Popup(title="Save file", content=content, size_hint=(0.9, 0.9))
         self._popup.open()
 
     def load(self, path, filename):
-        self.callback(os.path.join(path, filename[0]))
+        self.callback(path, filename[0])
         self.dismiss_popup()
 
     def save(self, path, filename):
-        self.callback(os.path.join(path, filename))
+        self.callback(path, filename)
         self.dismiss_popup()
 
 class LoadDialog(FloatLayout):
@@ -858,12 +946,15 @@ class LoadDialog(FloatLayout):
     cancel = ObjectProperty(None)
     filechooser = ObjectProperty(None)
 
-    def __init__(self, filters = None, **kwargs):
+
+    def __init__(self, filters = None, path = None, **kwargs):
         super(LoadDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
         self.filechooser.filters = filters
-        self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
+        print path
+        if path is not None:
+            self.filechooser.path = path
 
 
 class SaveDialog(FloatLayout):
@@ -872,17 +963,12 @@ class SaveDialog(FloatLayout):
     cancel = ObjectProperty(None)
     filechooser = ObjectProperty(None)
 
-    def __init__(self, **kwargs):
+    def __init__(self, path = None, **kwargs):
         super(SaveDialog, self).__init__(**kwargs)
         # for now just default to user's home directory. In the future, we may want to
         # add some code to go to the same directory the user was in last time.
-        self.filechooser.path = os.path.dirname(os.path.realpath(__file__))
-
-
-
-# Factory.register('LoadSave', cls=LoadSave)
-# Factory.register('LoadDialog', cls=LoadDialog)
-# Factory.register('SaveDialog', cls=SaveDialog)
+        if path is not None:
+            self.filechooser.path = path
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp
