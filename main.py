@@ -253,19 +253,23 @@ class MainView(Widget):
         print "transient select changed"
         selected_basenames = [v.text for v in value]
         self.series_controller.clear(label = 'Transients')
+        self.series_controller.clear_files(transient=True)
         for t in self.transient_files:
             if os.path.basename(t.source_file) in selected_basenames:
                 data = [p for p in t.get_xy_pairs()]
                 self.series_controller.add_data('Transients', data)
+                self.series_controller.add_file(t, transient=True)
 
     def _behavior_select_changed(self, instance, value):
         selected_basenames = [v.text for v in value]
         self.series_controller.clear(except_label = 'Transients')
+        self.series_controller.clear_files()
         for s in self.behavior_files:
             if os.path.basename(s.source_file) in selected_basenames:
                 for field in s.get_valid_time_columns():
                     data = [p for p in s.get_xy_pairs(x=field)]
                     self.series_controller.add_data(field, data, marker='plus', is_x_only = True)
+                self.series_controller.add_file(s)
 
     def _add_behavior_file(self, directory, name):
         self.filechooser_path = directory

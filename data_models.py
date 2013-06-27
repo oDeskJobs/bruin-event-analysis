@@ -75,6 +75,7 @@ class TransientDataPoint(object):
     # area = 0
     # baseline = 0
     # half_width = 0
+    kv_pairs = {}
 
     def __init__(self, **kwargs):
         for k in kwargs.keys():
@@ -83,13 +84,17 @@ class TransientDataPoint(object):
             
     def set_from_row(self, row, field_order):
         assert len(row) == len(field_order)
+        kv_pairs = {}
         for k, v in zip(field_order, row):
             try:
                 # if the value is a string, remove thousand seperators and cast as float
                 vf = float(v.replace(',',''))
             except AttributeError:
                 vf = v
+            kv_pairs[k] = vf
+            self.kv_pairs = kv_pairs
             setattr(self, k, vf)
+
 
     def __getitem__(self, val):
         return getattr(self, val)

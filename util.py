@@ -3,7 +3,10 @@ from kivy.properties import ListProperty, DictProperty
 from kivy.uix.widget import Widget
 from copy import copy
 import csv
+import sys
 
+def flatten(l):
+    return [item for sublist in l for item in sublist]
 
 class Workspace(object):
     """This class contains all the information required to load or save a workspace"""
@@ -119,6 +122,8 @@ class SeriesController(Widget):
     all_variables_list = ListProperty([])
     x_only_fields = []
     arrows = DictProperty({})
+    transient_files = []
+    other_files = []
 
     # determines where on the y_axis series show up if they don't have y data
     x_only_field_y_hints = [[],
@@ -150,6 +155,18 @@ class SeriesController(Widget):
         if label not in self.all_variables_list and len(t.data) > 0: self.all_variables_list.append(label)
         # print self.all_variables_list
         print "Adding %s data points to series '%s'; series now contains %s items." % (len(xy_data), label, len(t.data))
+
+    def add_file(self, file_object, transient=False):
+        if transient:
+            self.transient_files.append(file_object)
+        else:
+            self.other_files.append(file_object)
+
+    def clear_files(self, transient=False):
+        if transient:
+            self.transient_files = []
+        else:
+            self.other_files = []
 
     def reshape_x_only_data(self, label, xy_data):
         enabled_x_only_fields = [l for l in self.x_only_fields if self.series_dict[l].enabled or l == label]
@@ -274,9 +291,22 @@ class SeriesController(Widget):
                 csvwriter.writerow([idx, label1, label2, time_range[0], time_range[1]])
 
     def export_events(self, label, filename):
+        # get list of all datapoints and all column names in transient file
+        all_datapoints = []
+        all_transient_fieldnames = set()
+        time_col = self.transient_files[0].time_col
+        for datafile in self.transient_files:
+            kv_pairs = [datapoint.kv_pairs for datapoint in datafile.data]
+            print kv_pairs
+            keys = set(flatten([kv.keys() for kv in kv_pairs]))
+            all_datapoints += kv_pairs
+            all_transient_fieldnames.update(keys)
+
+                
         with open(filename, 'w') as outf:
-            csvwriter = csv.writer(outf)
-            csvwriter.writerow(['Transient X','Transient Amplitude',"Matched Event", "Matched Event Time", "Peak time after event"])
+            fieldnames = sorted(all_transient_fieldnames) + ["Matched Event", "Matched Event Time", "Peak time after event"]
+            csvwriter = csv.DictWriter(outf, fieldnames=fieldnames)
+            csvwriter.writeheader()
             transient_x = self.series_dict['Transients'].data_x
             transient_y = self.series_dict['Transients'].data_y
             event_x = self.series_dict[label].data_x
@@ -288,12 +318,19 @@ class SeriesController(Widget):
                     event_label = None
                     matched_event = None
                     time_diff = None
+                    addl_fields = {}
                 else:
                     event_label = label
                     matched_event = min(related_events, key = lambda k: abs(peak_time-k))
                     time_diff = peak_time - matched_event
+                datapoints = [p for p in all_datapoints if p[time_col] == peak_time]
+                print peak_time, datapoints
+                addl_fields = datapoints[0] if len(datapoints) > 0 else {}
 
-                csvwriter.writerow([peak_time, amplitude, event_label, matched_event, time_diff])
+
+                csvwriter.writerow(dict(addl_fields.items() + [("Matched Event", event_label), 
+                    ("Matched Event Time", matched_event),
+                    ("Peak time after event", time_diff)]))
 
 
 class ColorPalette(object):
