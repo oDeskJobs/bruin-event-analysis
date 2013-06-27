@@ -347,6 +347,9 @@ class MainView(Widget):
             data1, data2 = [self.series_controller.get_data(l) for l in (label1, label2)]
             transitions = get_transitions_from_xy_data(data1, data2, threshold = self.transition_box.transition_threshold)
             self.series_controller.add_arrows(label1, label2, transitions)
+            # add transition data to series controller for event matching
+            self.series_controller.add_data("Transition: " + label1 + " -> " + label2, [(t[0], None) for t in transitions], marker='plus', is_x_only = True, replace_previous_data = True)
+            
 
     def calculate_event_matches(self, *largs):
         self.series_controller.clear_col_highlights()
@@ -599,7 +602,7 @@ class TransitionIDBox(BoxLayout):
         self.transition_threshold = value
 
     def add_variable_pair(self):
-        variable_pairer = VariablePairer(self.available_variables)
+        variable_pairer = VariablePairer([v for v in self.available_variables if not v.startswith('Transition:')])
         popup = Popup(title='Choose Variable Pairs', content = variable_pairer, size_hint = (.6, .6))
         variable_pairer.dismiss_button.bind(on_press = popup.dismiss)
         popup.bind(on_dismiss = self.build_pair)
