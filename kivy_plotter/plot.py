@@ -328,14 +328,21 @@ class Plot(Widget):
             for x in drange(first_x_tick, self.viewport[2], self.tick_distance_x):
                 start = self.to_display_point(x, self.viewport[1])
                 stop = self.to_display_point(x, self.viewport[3])
+                label = Label(text=str(int(x)))
+                label.texture_update()
                 self.ticks.add(Line(points=[start[0], start[1], stop[0], stop[1]]))
+                self.ticks.add(Rectangle(pos = (start[0] + 5,start[1]+5), size=label.texture_size, texture=label.texture))
+
 
         if self.tick_distance_y is not None:
             first_y_tick = self.tick_distance_y*(int(self.viewport[1]/self.tick_distance_y) + 1)
             for y in drange(first_y_tick, self.viewport[3], self.tick_distance_y):
                 start = self.to_display_point(self.viewport[0], y)
                 stop = self.to_display_point(self.viewport[2], y)
+                label = Label(text=str(int(y)))
+                label.texture_update()
                 self.ticks.add(Line(points=[start[0], start[1], stop[0], stop[1]]))
+                self.ticks.add(Rectangle(pos = (start[0] + 5,start[1]), size=label.texture_size, texture=label.texture))
         
         self.ticks.add(PopMatrix())
 
